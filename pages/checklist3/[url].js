@@ -123,8 +123,8 @@ const Url = ({ url, id, mail, r, mi }) => {
     };
 
     const url = mi
-      ? `https://api.midastech.org/api/email/getLinksById/${mi}`
-      : `https://api.midastech.org/api/email/getAllLinks/${decryptedMail}`;
+      ? `https://uatapi.midastech.org/api/email/getLinksById/${mi}`
+      : `https://uatapi.midastech.org/api/email/getAllLinks/${decryptedMail}`;
 
     fetch(url, options)
       .then((response) => {
