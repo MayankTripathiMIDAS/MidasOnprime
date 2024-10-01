@@ -728,13 +728,8 @@ const Url = ({ url, id, mail, r, mi }) => {
         "User-Agent": "insomnia/8.6.1",
       },
     };
-    console.log("url", url);
-    console.log("id", id);
-    console.log("mail", mail);
-    console.log("r", r);
-
     fetch(
-      `${host}list/getCheckList3/${url}?id=${id}&mail=${mail}&r=${r}`,
+      `${host}list/getCheckList2/${url}?id=${id}&mail=${mail}&r=${r}`,
       options
     )
       .then((res) => res.json())
