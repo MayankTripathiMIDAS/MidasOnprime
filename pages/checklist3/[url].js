@@ -611,7 +611,7 @@ const Url = ({ url, id, mail, r, mi }) => {
 
     const options = {
       method: "POST",
-      url: `${host}list/submitCheckList2`,
+      url: `http://localhost:3000/api/submitchecklist`,
       headers: { "Content-Type": "application/json" },
       data: {
         firstname: values.firstname,

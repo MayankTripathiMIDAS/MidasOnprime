@@ -419,7 +419,7 @@ const Url = ({ url }) => {
 
     const options = {
       method: "POST",
-      url: `${host}list/submitCheckList`,
+      url: `https://midas-onprime-yh2e.vercel.app/api/submitCheckList`,
       headers: { "Content-Type": "application/json" },
       data: {
         firstname: values.firstname,
@@ -438,6 +438,8 @@ const Url = ({ url }) => {
         senderMail: "",
       },
     };
+    console.log("data", options.data);
+
     setLoading(true);
     axios
       .request(options)
