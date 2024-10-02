@@ -176,7 +176,7 @@ const Url = ({ url }) => {
 
     return tableHTML;
   }
-  const submitChecklist = async (Html) => {
+  const submitChecklist = async (Html, formatDob, url) => {
     try {
       setLoading(true); // Set loading state to true
 
@@ -510,7 +510,7 @@ const Url = ({ url }) => {
     setLoading(true);
 
     // Send the request to the Next.js API route
-    submitChecklist(Html);
+    submitChecklist(Html, formatDob, url);
   };
 
   const handleReferences = (e, index) => {
