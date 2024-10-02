@@ -1,6 +1,6 @@
 import dbConnect from "@/utils/DBConnect"; // Adjust path as necessary
 import CheckList from "@/model/SubmitChecklist"; // Adjust based on your project structure
-import puppeteer from "puppeteer"; // Ensure puppeteer is installed
+import puppeteer from "puppeteer-core"; // Use puppeteer-core
 import nodemailer from "nodemailer"; // Ensure nodemailer is installed
 
 const SubmitCheckList = async (req, res) => {
@@ -59,20 +59,19 @@ const SubmitCheckList = async (req, res) => {
 
   async function createPDF() {
     const browser = await puppeteer.launch({
-      headless: "new",
+      executablePath: process.env.CHROMIUM_PATH || "/usr/bin/chromium-browser", // Use correct path
+      headless: true, // Run headless
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
 
     const page = await browser.newPage();
-
     await page.setContent(htmlData, { waitUntil: "networkidle0" });
 
-    // Generate PDF from the HTML content
-    await page.pdf({ path: "output.pdf", format: "A3", printBackground: true });
+    const pdfPath = `/tmp/${firstname}-${lastname}-${listName}.pdf`; // Save to /tmp
+    await page.pdf({ path: pdfPath, format: "A3", printBackground: true });
 
     await browser.close();
-
-    return "output.pdf"; // Return the path to the generated PDF file
+    return pdfPath; // Return the path to the generated PDF file
   }
 
   async function sendEmail(pdfPath) {
@@ -81,14 +80,14 @@ const SubmitCheckList = async (req, res) => {
       port: 587,
       secure: false,
       auth: {
-        user: "skill-checklist@midasconsulting.org", // Your email address
-        pass: "Anubhav_123", // Your password
+        user: process.env.EMAIL_USER, // Use environment variable
+        pass: process.env.EMAIL_PASS, // Use environment variable
       },
     });
 
     const mailOptions = {
-      from: "skill-checklist@midasconsulting.org",
-      to: "skill-checklist@midasconsulting.org",
+      from: process.env.EMAIL_USER,
+      to: process.env.EMAIL_USER,
       subject: `Response Received - ${listName} Skills Checklist`,
       attachments: [
         {
@@ -128,7 +127,7 @@ const SubmitCheckList = async (req, res) => {
       res.status(500).json({
         baseResponse: {
           status: 0,
-          message: `An error occurred while processing your request.${error}`,
+          message: `An error occurred while processing your request: ${error}`,
         },
         response: [],
       });
