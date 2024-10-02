@@ -510,7 +510,7 @@ const Url = ({ url }) => {
     setLoading(true);
 
     // Send the request to the Next.js API route
-    submitChecklist(HTML);
+    submitChecklist(Html);
   };
 
   const handleReferences = (e, index) => {
