@@ -108,7 +108,6 @@ const Url = ({ url }) => {
     state[0].endDate === ""
       ? ""
       : moment(state[0].endDate).format("MM/DD/YYYY");
-
   function renderTable(datas, title) {
     // Start building the table markup
 
@@ -176,56 +175,6 @@ const Url = ({ url }) => {
 
     return tableHTML;
   }
-  const submitChecklist = async (Html, formatDob, url) => {
-    try {
-      setLoading(true); // Set loading state to true
-
-      const response = await fetch(
-        "https://midas-onprime-yh2e.vercel.app/api/submitchecklist",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            firstname: values.firstname,
-            lastname: values.lastname,
-            phoneno: values.phoneno,
-            email: values.email,
-            dob: formatDob,
-            ssn: values.ssn,
-            references: references,
-            list: data.list,
-            htmlData: Html,
-            listName: data.Listname,
-            address: values.address,
-            requestTimeOffDate: { startDate: from, endDate: to },
-            categoryname: url,
-            senderMail: "",
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (result.baseResponse.status === 1) {
-        swal({
-          title: "Response received.",
-          text: "Thank you! Your response has been received.",
-          icon: "success",
-        });
-        window.location.reload();
-      } else {
-        throw new Error(
-          result.baseResponse.message || "Failed to submit checklist"
-        );
-      }
-    } catch (error) {
-      alert(error.message);
-    } finally {
-      setLoading(false); // Reset loading state
-    }
-  };
 
   const capitalized = url.charAt(0).toUpperCase() + url.slice(1);
   const date = `${from}-${to}`;
@@ -468,52 +417,45 @@ const Url = ({ url }) => {
 
     const formatDob = moment(formValues.dob).format("MM/DD/YYYY");
 
-    // const options = {
-    //   method: "POST",
-    //   url: `http://0.0.0.0:3000/api/submitCheckList`,
-    //   headers: { "Content-Type": "application/json" },
-    //   data: {
-    //     firstname: values.firstname,
-    //     lastname: values.lastname,
-    //     phoneno: values.phoneno,
-    //     email: values.email,
-    //     dob: formatDob,
-    //     ssn: values.ssn,
-    //     references: references,
-    //     list: data.list,
-    //     htmlData: Html,
-    //     listName: data.Listname,
-    //     address: values.address,
-    //     requestTimeOffDate: { startDate: from, endDate: to },
-    //     categoryname: url,
-    //     senderMail: "",
-    //   },
-    // };
-    // console.log("data", options.data);
-
-    // setLoading(true);
-    // axios
-    //   .request(options)
-    //   .then(function (response) {
-    //     setLoading(true);
-    //     if (response.data.baseResponse.status === 1) {
-    //       swal({
-    //         title: "Response received.",
-    //         text: "Thank you! Your response has been received.",
-    //         icon: "success",
-    //       });
-    //       setLoading(true);
-    //       window.location.reload();
-    //     }
-    //   })
-    //   .catch(function (error) {
-    //     alert(error);
-    //   });
-
+    const options = {
+      method: "POST",
+      url: `${host}list/submitCheckList`,
+      headers: { "Content-Type": "application/json" },
+      data: {
+        firstname: values.firstname,
+        lastname: values.lastname,
+        phoneno: values.phoneno,
+        email: values.email,
+        dob: formatDob,
+        ssn: values.ssn,
+        references: references,
+        list: data.list,
+        htmlData: Html,
+        listName: data.Listname,
+        address: values.address,
+        requestTimeOffDate: { startDate: from, endDate: to },
+        categoryname: url,
+        senderMail: "",
+      },
+    };
     setLoading(true);
-
-    // Send the request to the Next.js API route
-    submitChecklist(Html, formatDob, url);
+    axios
+      .request(options)
+      .then(function (response) {
+        setLoading(true);
+        if (response.data.baseResponse.status === 1) {
+          swal({
+            title: "Response received.",
+            text: "Thank you! Your response has been received.",
+            icon: "success",
+          });
+          setLoading(true);
+          window.location.reload();
+        }
+      })
+      .catch(function (error) {
+        alert(error);
+      });
   };
 
   const handleReferences = (e, index) => {

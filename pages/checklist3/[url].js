@@ -609,97 +609,46 @@ const Url = ({ url, id, mail, r, mi }) => {
 
     const formatDob = moment(formValues.dob).format("MM/DD/YYYY");
 
-    // const options = {
-    //   method: "POST",
-    //   url: `http://localhost:3000/api/submitchecklist`,
-    //   headers: { "Content-Type": "application/json" },
-    //   data: {
-    //     firstname: values.firstname,
-    //     lastname: values.lastname,
-    //     phoneno: values.phoneno,
-    //     email: values.email,
-    //     dob: formatDob,
-    //     ssn: values.ssn,
-    //     references: references,
-    //     list: data.list,
-    //     htmlData: Html,
-    //     htmlData1: RtrTemp,
-    //     listName: data.Listname,
-    //     address: values.address,
-    //     requestTimeOffDate: { startDate: from, endDate: to },
-    //     categoryname: url,
-    //     senderMail: senderMail,
-    //   },
-    // };
-    // setLoading(true);
-    // axios
-    //   .request(options)
-    //   .then(function (response) {
-    //     setLoading(true);
-    //     if (response.data.baseResponse.status === 1) {
-    //       swal({
-    //         title: "Response received.",
-    //         text: "Thank you! Your response has been received.",
-    //         icon: "success",
-    //       });
-    //       setLoading(true);
-    //       window.location.reload();
-    //     }
-    //   })
-    //   .catch(function (error) {
-    //     alert(error);
-    //   });
-
-    const submitChecklist = async (Html) => {
-      try {
-        setLoading(true); // Set loading state to true
-
-        const response = await fetch("${host}list/submitCheckList2", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            firstname: values.firstname,
-            lastname: values.lastname,
-            phoneno: values.phoneno,
-            email: values.email,
-            dob: formatDob,
-            ssn: values.ssn,
-            references: references,
-            list: data.list,
-            htmlData: Html,
-            listName: data.Listname,
-            address: values.address,
-            requestTimeOffDate: { startDate: from, endDate: to },
-            categoryname: url,
-            senderMail: "",
-          }),
-        });
-
-        const result = await response.json();
-
-        if (result.baseResponse.status === 1) {
+    const options = {
+      method: "POST",
+      url: `${host}list/submitCheckList2`,
+      headers: { "Content-Type": "application/json" },
+      data: {
+        firstname: values.firstname,
+        lastname: values.lastname,
+        phoneno: values.phoneno,
+        email: values.email,
+        dob: formatDob,
+        ssn: values.ssn,
+        references: references,
+        list: data.list,
+        htmlData: Html,
+        htmlData1: RtrTemp,
+        listName: data.Listname,
+        address: values.address,
+        requestTimeOffDate: { startDate: from, endDate: to },
+        categoryname: url,
+        senderMail: senderMail,
+      },
+    };
+    setLoading(true);
+    axios
+      .request(options)
+      .then(function (response) {
+        setLoading(true);
+        if (response.data.baseResponse.status === 1) {
           swal({
             title: "Response received.",
             text: "Thank you! Your response has been received.",
             icon: "success",
           });
+          setLoading(true);
           window.location.reload();
-        } else {
-          throw new Error(
-            result.baseResponse.message || "Failed to submit checklist"
-          );
         }
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        setLoading(false); // Reset loading state
-      }
-    };
-
-    // Send the request to the Next.js API route
-    submitChecklist(HTML);
+      })
+      .catch(function (error) {
+        alert(error);
+      });
   };
 
   // const handleReferences = (e, index) => {
