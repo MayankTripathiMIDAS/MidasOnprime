@@ -180,28 +180,31 @@ const Url = ({ url }) => {
     try {
       setLoading(true); // Set loading state to true
 
-      const response = await fetch("/api/submitchecklist", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          firstname: values.firstname,
-          lastname: values.lastname,
-          phoneno: values.phoneno,
-          email: values.email,
-          dob: formatDob,
-          ssn: values.ssn,
-          references: references,
-          list: data.list,
-          htmlData: Html,
-          listName: data.Listname,
-          address: values.address,
-          requestTimeOffDate: { startDate: from, endDate: to },
-          categoryname: url,
-          senderMail: "",
-        }),
-      });
+      const response = await fetch(
+        "https://midas-onprime-yh2e.vercel.app/api/submitchecklist",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            firstname: values.firstname,
+            lastname: values.lastname,
+            phoneno: values.phoneno,
+            email: values.email,
+            dob: formatDob,
+            ssn: values.ssn,
+            references: references,
+            list: data.list,
+            htmlData: Html,
+            listName: data.Listname,
+            address: values.address,
+            requestTimeOffDate: { startDate: from, endDate: to },
+            categoryname: url,
+            senderMail: "",
+          }),
+        }
+      );
 
       const result = await response.json();
 

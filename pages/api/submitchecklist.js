@@ -128,7 +128,7 @@ const SubmitCheckList = async (req, res) => {
       res.status(500).json({
         baseResponse: {
           status: 0,
-          message: "An error occurred while processing your request.",
+          message: `An error occurred while processing your request.${error}`,
         },
         response: [],
       });
