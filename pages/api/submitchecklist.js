@@ -1,6 +1,6 @@
 import dbConnect from "@/utils/DBConnect"; // Adjust path as necessary
 import CheckList from "@/model/SubmitChecklist"; // Adjust based on your project structure
-import puppeteer from "puppeteer-core"; // Use puppeteer-core
+import chromium from "chrome-aws-lambda"; // Import chrome-aws-lambda
 import nodemailer from "nodemailer"; // Ensure nodemailer is installed
 
 const SubmitCheckList = async (req, res) => {
@@ -58,20 +58,21 @@ const SubmitCheckList = async (req, res) => {
   });
 
   async function createPDF() {
-    const browser = await puppeteer.launch({
-      executablePath: process.env.CHROMIUM_PATH || "/usr/bin/chromium-browser", // Use correct path
-      headless: true, // Run headless
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    // Launch the browser using chrome-aws-lambda
+    const browser = await chromium.puppeteer.launch({
+      args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath,
+      headless: true,
     });
 
     const page = await browser.newPage();
     await page.setContent(htmlData, { waitUntil: "networkidle0" });
-
-    const pdfPath = `/tmp/${firstname}-${lastname}-${listName}.pdf`; // Save to /tmp
-    await page.pdf({ path: pdfPath, format: "A3", printBackground: true });
+    await page.pdf({ path: "output.pdf", format: "A3", printBackground: true });
 
     await browser.close();
-    return pdfPath; // Return the path to the generated PDF file
+
+    return "output.pdf"; // Return the path to the generated PDF file
   }
 
   async function sendEmail(pdfPath) {
@@ -80,14 +81,14 @@ const SubmitCheckList = async (req, res) => {
       port: 587,
       secure: false,
       auth: {
-        user: process.env.EMAIL_USER, // Use environment variable
-        pass: process.env.EMAIL_PASS, // Use environment variable
+        user: "skill-checklist@midasconsulting.org", // Your email address
+        pass: "Anubhav_123", // Your password
       },
     });
 
     const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_USER,
+      from: "skill-checklist@midasconsulting.org",
+      to: "skill-checklist@midasconsulting.org",
       subject: `Response Received - ${listName} Skills Checklist`,
       attachments: [
         {
@@ -127,7 +128,7 @@ const SubmitCheckList = async (req, res) => {
       res.status(500).json({
         baseResponse: {
           status: 0,
-          message: `An error occurred while processing your request: ${error}`,
+          message: `An error occurred while processing your request. ${error}`,
         },
         response: [],
       });
