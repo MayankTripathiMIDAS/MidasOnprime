@@ -20,7 +20,7 @@ import { id } from "date-fns/locale";
 import CryptoJS from "crypto-js";
 import NotRequiredInputField from "@/components/NotRequiredInputField";
 
-const Url = ({ url, id, mail, r, mi }) => {
+const Url = ({ url, id, mail, r, mi, tenant }) => {
   const router = useRouter();
   const [active, setActive] = useState(false);
   console.log("here", active);
@@ -320,7 +320,7 @@ const Url = ({ url, id, mail, r, mi }) => {
       contactTime: "",
       currentCTC: "",
       dateIssued: "2024-10-24T21:31:00.098Z",
-      dateOfBirth: "",
+      dateOfBirth: candidate?.dob.toString(),
       date_added: "2024-10-24T21:31:00.098Z",
       degree: [{}],
       designation: [
@@ -334,10 +334,7 @@ const Url = ({ url, id, mail, r, mi }) => {
       ],
       desiredShifts: "",
       eligibleToWorkUS: true,
-      email:
-        candidateData.jobTitle === ""
-          ? formik.values.email
-          : candidateData.email,
+      email: candidate.email,
       expirationDate: "",
       fileHandle: {
         "@microsoft.graph.downloadUrl": "string",
@@ -430,25 +427,16 @@ const Url = ({ url, id, mail, r, mi }) => {
       id: "",
       investigationDetails: "",
       issuingState: "",
-      lastName:
-        candidateData.jobTitle === ""
-          ? formik.values.lastname
-          : candidateData.lastName,
+      lastName: candidate?.lastName,
       last_updated: "",
       license: [""],
       licenseNumber: "",
       licensedStates: "",
       licenses: [{}],
       municipality: "",
-      name:
-        candidateData.jobTitle === ""
-          ? formik.values.firstname + " " + formik.values.lastname
-          : candidateData.firstName + " " + candidateData.lastName,
+      name: candidate?.firstname + " " + candidate?.lastname,
       otherPhone: "",
-      phone:
-        candidateData.jobTitle === ""
-          ? formik.values.phoneno
-          : candidateData.phone,
+      phone: candidate?.phone,
       preferredCities: candidateData.jobTitle === "" ? checkliststate : [""],
       preferredDestinations: "",
       primarySpeciality: candidateSpeciality,
@@ -465,12 +453,13 @@ const Url = ({ url, id, mail, r, mi }) => {
 
     try {
       const response = await fetch(
-        "https://hrmsapi.midastech.org:8443/api/v1/candidateMidas/createCandidate",
+        "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            "X-Tenant": tenant,
           },
           body: raw,
         }
@@ -642,12 +631,13 @@ const Url = ({ url, id, mail, r, mi }) => {
     ) {
       try {
         const response = await fetch(
-          "https://hrmsapi.midastech.org:8443/api/v1/candidateMidas/createCandidate",
+          "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
+              "X-Tenant": tenant,
             },
             body: raw,
           }
@@ -822,12 +812,13 @@ const Url = ({ url, id, mail, r, mi }) => {
     ) {
       try {
         const response = await fetch(
-          "https://hrmsapi.midastech.org:8443/api/v1/candidateMidas/createCandidate",
+          "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
+              "X-Tenant": tenant,
             },
             body: raw,
           }
@@ -873,7 +864,8 @@ const Url = ({ url, id, mail, r, mi }) => {
   }
 
   const submitData = (e, values, candidateData, token) => {
-    createCandidate(candidateData, token);
+    console.log("values", values, candidateData);
+    createCandidate(values, token);
     createCandidatebyFirstReference(references, token);
     createCandidatebySecondReference(references, token);
     const dateofbith = moment(values.dob).format("MM/DD/YYYY");
@@ -1229,7 +1221,10 @@ const Url = ({ url, id, mail, r, mi }) => {
     const options = {
       method: "POST",
       url: `${host}list/submitCheckList2`,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Tenant": tenant,
+      },
       data: {
         firstname: values.firstname,
         lastname: values.lastname,
@@ -1279,13 +1274,10 @@ const Url = ({ url, id, mail, r, mi }) => {
         "Content-Type": "application/json",
         "User-Agent": "insomnia/8.6.1",
       },
-      body: '{"email":"anubhav.kaushik@midasconsulting.org","password":"Midas@123"}',
+      body: '{"email":"archit.mishra@midastravel.org","password":"MidasAdmin@3321"}',
     };
 
-    fetch(
-      "https://hrmsapi.midastech.org:8443/api/v1/user/authenticate",
-      options
-    )
+    fetch("https://hrmsapi.theartemis.ai/api/v1/user/authenticate", options)
       .then((response) => response.json())
       .then((response) => setToken(response.response))
       .catch((err) => console.error(err));
@@ -1364,6 +1356,7 @@ const Url = ({ url, id, mail, r, mi }) => {
       method: "GET",
       headers: {
         "User-Agent": "insomnia/8.6.1",
+        "X-Tenant": tenant,
       },
     };
 
@@ -3250,6 +3243,7 @@ export async function getServerSideProps({ query }) {
         mail: params.get("mail") || "",
         r: params.get("r") || "",
         mi: params.get("mi") || "",
+        tenant: params.get("tenant") || "",
         url: queryUrl, // Hardcoded as per expected output
       };
 
@@ -3262,6 +3256,7 @@ export async function getServerSideProps({ query }) {
     if (decryptedData) {
       jsonObject = parseQueryString(decryptedData);
     }
+    console.log("jsonObject", jsonObject);
     // Ensure we are correctly extracting values from decryptedData
     return {
       props: {
@@ -3270,6 +3265,7 @@ export async function getServerSideProps({ query }) {
         mail: jsonObject?.mail,
         r: jsonObject?.r,
         mi: jsonObject?.mi,
+        tenant: jsonObject?.tenant,
       },
     };
   }
