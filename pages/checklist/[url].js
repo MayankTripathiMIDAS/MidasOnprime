@@ -50,6 +50,17 @@ const Url = ({ url }) => {
       email: "",
     },
   ]);
+  const referenceValidation = Yup.object().shape({
+    name: Yup.string(),
+    phoneno: Yup.string()
+      .matches(/^[0-9]{10}$/, "Must be exactly 10 digits")
+      .nullable(),
+    email: Yup.string().email(),
+  });
+
+  // Add to main validationSchema:
+  references: Yup.array().of(referenceValidation);
+
   const [state, setState] = useState([
     {
       startDate: "",
@@ -73,7 +84,15 @@ const Url = ({ url }) => {
     validationSchema: Yup.object({
       firstname: Yup.string().required("Required"),
       lastname: Yup.string().required("Required"),
-      phoneno: Yup.string().required("Required"),
+      phoneno: Yup.string()
+        .required("US phone number with +1 is required")
+        .matches(/^\+1\d{10}$/, "Please enter a 10-digit number)")
+        .transform((value) => {
+          // Auto-correct partial entries
+          if (!value) return value;
+          const digits = value.replace(/\D/g, "");
+          return `+1${digits.substring(1, 11)}`; // Force +1 + 10 digits
+        }),
       ssn: Yup.string()
         .matches(/^[0-9]+$/, "Please enter only numbers")
         .required("SSN is required")
@@ -460,20 +479,68 @@ const Url = ({ url }) => {
   };
 
   const handleReferences = (e, index) => {
-    e.preventDefault();
     const { name, value } = e.target;
-    // console.log(value, "value");
-    if (name === "phoneno") {
-      const list = [...references];
-      list[index][name] = parseInt(value);
-      setReferenes(list);
-    } else {
-      const list = [...references];
-      list[index][name] = value;
-      setReferenes(list);
-    }
-  };
+    const updatedReferences = [...references];
 
+    if (name === "phoneno") {
+      // 1. Remove all non-digit characters
+      const digits = value.replace(/\D/g, "");
+    
+      // 2. Make sure we only proceed if we have at least 10 digits (after trimming)
+      const cleanedDigits = digits.startsWith("1") ? digits.slice(1, 11) : digits.slice(0, 10);
+    
+      const rawPhone = `+1${cleanedDigits}`;
+    
+      // Only format and set values if cleanedDigits is exactly 10 digits
+      if (cleanedDigits.length < 10) {
+        updatedReferences[index][name] = value; // keep user input
+        updatedReferences[index]._rawPhone = rawPhone; // still set raw
+        setReferenes(updatedReferences);
+        return;
+      }
+    
+      // 3. Format display version
+      let formatted = rawPhone.replace(
+        /^\+1(\d{3})(\d{3})(\d{4})$/,
+        (_, p1, p2, p3) => `+1 (${p1}) ${p2}-${p3}`
+      );
+    
+      updatedReferences[index][name] = formatted;
+      updatedReferences[index]._rawPhone = rawPhone;
+    }
+    
+
+    // Your existing duplicate checking logic
+    if (name === "name" && index !== 0) {
+      const firstReferenceName = updatedReferences[0].name;
+      if (value === firstReferenceName) {
+        alert(
+          "Reference name cannot be the same as the first reference's name"
+        );
+        return;
+      }
+    }
+
+    if (name === "phoneno" && index !== 0) {
+      const currentDigits = updatedReferences[index].phoneno.replace(/\D/g, "");
+      const firstDigits =
+        updatedReferences[0].phoneno?.replace(/\D/g, "") || "";
+      if (currentDigits === firstDigits && currentDigits.length > 1) {
+        alert("Phone number cannot be the same as the first reference");
+        return;
+      }
+    }
+
+    if (name === "email" && index !== 0) {
+      const firstEmail = updatedReferences[0].email;
+      if (value === firstEmail) {
+        alert("Email cannot be the same as the first reference");
+        return;
+      }
+    }
+
+    setReferenes(updatedReferences);
+  };
   const tableData = () => {
     const options = { method: "GET" };
 
@@ -567,9 +634,40 @@ const Url = ({ url }) => {
                       <InputField
                         label={"Phone number*"}
                         value={values.phoneno}
-                        type={"number"}
+                        type={"tel"}
                         placeholder={"Enter Phone number"}
-                        onChange={handleChange}
+                        onChange={(e) => {
+                          const input = e.target.value;
+
+                          // 1. Remove all non-digit characters
+                          const digits = input.replace(/\D/g, "");
+
+                          // 2. Ensure starts with +1
+                          let formatted = "+1";
+                          if (digits.startsWith("1") && digits.length > 1) {
+                            formatted += digits.substring(1, 11); // Take next 10 digits
+                          } else if (!digits.startsWith("1")) {
+                            formatted += digits.substring(0, 10); // Take first 10 digits
+                          }
+
+                          // 3. Add formatting
+                          if (formatted.length > 2) {
+                            formatted = formatted.replace(
+                              /^(\+1)(\d{0,3})(\d{0,3})(\d{0,4})/,
+                              (_, p1, p2, p3, p4) =>
+                                [
+                                  p1,
+                                  p2 && ` (${p2}`,
+                                  p3 && `) ${p3}`,
+                                  p4 && `-${p4}`,
+                                ]
+                                  .filter(Boolean)
+                                  .join("")
+                            );
+                          }
+
+                          formik.setFieldValue("phoneno", formatted);
+                        }}
                         onBlur={handleBlur}
                         id={"validationCustom03"}
                         required={true}
@@ -689,7 +787,7 @@ const Url = ({ url }) => {
                           className="btn  btn-danger"
                           onChange={() => setActive(!active)}
                         >
-                          2 professional References. (One must be supervisor)
+                          Professional References (1 must be of supervisor)
                         </span>
                       </div>
                       <div className="col-md-11"></div>
@@ -698,36 +796,49 @@ const Url = ({ url }) => {
                     <div className="refences-div">
                       {references.map((item, index) => (
                         <div className="form-group row mb-3 d-flex align-items-center">
-                          <InputField
-                            label={"Referre's Name"}
-                            value={item.name}
-                            type={"text"}
-                            placeholder={"Enter Full Name"}
-                            onChange={(e) => handleReferences(e, index)}
-                            id={"validationCustom03"}
-                            name={"name"}
-                            required={false}
-                          />
-                          <InputField
-                            label={"Referre's Phone"}
-                            value={item.phoneno}
-                            type={"number"}
-                            placeholder={"Enter Phone number"}
-                            onChange={(e) => handleReferences(e, index)}
-                            id={"validationCustom03"}
-                            name={"phoneno"}
-                            required={false}
-                          />
-                          <InputField
-                            label={"Referre's E-mail"}
-                            value={item.email}
-                            type={"text"}
-                            placeholder={"Enter Referre's E-mail"}
-                            onChange={(e) => handleReferences(e, index)}
-                            id={"validationCustom03"}
-                            name={"email"}
-                            required={false}
-                          />
+                          <NotRequiredInputField
+                              label={"Name"}
+                              value={item.name}
+                              type={"text"}
+                              placeholder={"Enter Full Name"}
+                              onChange={(e) => handleReferences(e, index)}
+                              id={"validationCustom03"}
+                              name={"name"}
+                              required={false}
+                            />
+                          <NotRequiredInputField
+                              label={"Phone"}
+                              value={item.phoneno || "+1"}
+                              type={"tel"}
+                              placeholder={"Enter Phone Number"}
+                              onChange={(e) => handleReferences(e, index)}
+                              onBlur={() => {
+                                // Validate on blur (optional)
+                                if (!/^\+1\d{10}$/.test(item._rawPhone || "")) {
+                                  alert("Phone number must be in the format +1 followed by 10 digits");
+                                }
+                              }}
+                              id={"validationCustom03"}
+                              name={"phoneno"}
+                              required={false}
+                              // Add these if your NotRequiredInputField supports error display
+                              errors={
+                                item._rawPhone && !/^\+1\d{10}$/.test(item._rawPhone)
+                                  ? "Please enter a 10-digit phone number"
+                                  : undefined
+                              }
+                              touched={true}
+                            />
+                          <NotRequiredInputField
+                              label={"Email"}
+                              value={item.email}
+                              type={"email"}
+                              placeholder={"Enter Email Address"}
+                              onChange={(e) => handleReferences(e, index)}
+                              id={"validationCustom03"}
+                              name={"email"}
+                              required={false}
+                            />
                         </div>
                       ))}
                     </div>

@@ -4,8 +4,8 @@ import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import { Form, Formik, FormikProvider, useFormik } from "formik";
 import * as Yup from "yup";
-import "react-date-range/dist/styles.css"; // main css file
-import "react-date-range/dist/theme/default.css"; // theme css file
+import "react-date-range/dist/styles.css";
+import "react-date-range/dist/theme/default.css";
 import { addDays } from "date-fns";
 import { DateRange, DateRangePicker } from "react-date-range";
 import { Button, Modal } from "react-bootstrap";
@@ -18,15 +18,25 @@ import requestIp from "request-ip";
 import { NextApiRequest, NextApiResponse } from "next";
 import { id } from "date-fns/locale";
 import CryptoJS from "crypto-js";
+import NotRequiredInputField from "@/components/NotRequiredInputField";
 
-const Url = ({ url, id, mail, r, mi }) => {
+const Url = ({ url, id, mail, r, mi, tenant }) => {
   const router = useRouter();
   const [active, setActive] = useState(false);
+  const [speciality, setSpeciality] = useState("");
+  const [totalExperience, setTotalExperience] = useState("");
+  const [token, setToken] = useState("");
   const [html, setHTML] = useState("");
   const [dob, setDob] = useState(false);
   const [sign, setSign] = useState("");
   const [rtrSign, setRtrSign] = useState("");
   const [rtrData, setRtrData] = useState("");
+  const [candidateData, setCandidateData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+  });
   const [dateofBirth, setDateOfBirth] = useState(new Date());
   const [loading, setLoading] = useState(false);
   const [formValues, setFormValues] = useState("");
@@ -62,6 +72,49 @@ const Url = ({ url, id, mail, r, mi }) => {
     },
   ]);
 
+  function formatToUSPhoneNumber(phone) {
+    // Remove any non-numeric characters
+    const cleaned = ("" + phone).replace(/\D/g, "");
+
+    // Format based on the length of the cleaned number
+    if (cleaned.length === 10) {
+      // Format as (XXX) XXX-XXXX
+      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(
+        6
+      )}`;
+    } else if (cleaned.length === 11 && cleaned.startsWith("1")) {
+      // Format as +1 (XXX) XXX-XXXX
+      return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(
+        4,
+        7
+      )}-${cleaned.slice(7)}`;
+    } else if (cleaned.length === 7) {
+      // Format as XXX-XXXX for 7-digit numbers
+      return `${cleaned.slice(0, 3)}-${cleaned.slice(3)}`;
+    }
+
+    // Return the original input if it doesn't match common US phone number lengths
+    return phone;
+  }
+
+  const [states, setStates] = useState([""]);
+
+  const handleAddState = () => {
+    event.preventDefault();
+    setStates([...states, ""]); // Adds a new state input
+  };
+
+  const handleRemoveState = (index) => {
+    const newStates = states.filter((_, i) => i !== index); // Removes the state input at the specified index
+    setStates(newStates);
+  };
+
+  const handleStateChange = (index, event) => {
+    const newStates = [...states];
+    newStates[index] = event.target.value; // Updates the value of the state input at the specified index
+    setStates(newStates);
+  };
+
   //Validation*************************************************
 
   const formik = useFormik({
@@ -77,7 +130,15 @@ const Url = ({ url, id, mail, r, mi }) => {
     validationSchema: Yup.object({
       firstname: Yup.string().required("Required"),
       lastname: Yup.string().required("Required"),
-      phoneno: Yup.string().required("Required"),
+      phoneno: Yup.string()
+              .required("US phone number with +1 is required")
+              .matches(/^\+1\d{10}$/, "Please enter a 10-digit number)")
+              .transform((value) => {
+                // Auto-correct partial entries
+                if (!value) return value;
+                const digits = value.replace(/\D/g, "");
+                return `+1${digits.substring(1, 11)}`; // Force +1 + 10 digits
+              }),
       ssn: Yup.string()
         .matches(/^[0-9]+$/, "Please enter only numbers")
         .required("SSN is required")
@@ -99,6 +160,7 @@ const Url = ({ url, id, mail, r, mi }) => {
     }),
     onSubmit: (values, e) => {
       submitData(values, e);
+      createCandidate();
     },
   });
 
@@ -124,8 +186,8 @@ const Url = ({ url, id, mail, r, mi }) => {
     };
 
     const url = mi
-      ? `https://api.midastech.org/api/email/getLinksById/${mi}`
-      : `https://api.midastech.org/api/email/getAllLinks/${decryptedMail}`;
+      ? `https://api.theartemis.ai/api/email/getLinksById/${mi}`
+      : `https://api.theartemis.ai/api/email/getAllLinks/${decryptedMail}`;
 
     fetch(url, options)
       .then((response) => {
@@ -136,7 +198,7 @@ const Url = ({ url, id, mail, r, mi }) => {
       })
       .then((responseData) => {
         setRtrData(responseData[0] || responseData);
-        // Process the response data here
+        setCandidateData(responseData[0] || responseData);
       })
       .catch((error) => {
         console.error("Fetch error:", error);
@@ -144,60 +206,14 @@ const Url = ({ url, id, mail, r, mi }) => {
       });
   };
 
-  // const rtrDetails = () => {
-  //   const options = {
-  //     method: "GET",
-  //     headers: {
-  //       "User-Agent": "insomnia/8.6.1",
-  //     },
-  //   };
-  //   fetch(
-  //     `https://api.midastech.org/api/email/getAllLinks/${decryptedMail}`,
-  //     options
-  //   )
-  //     .then((response) => {
-  //       if (!response.ok) {
-  //         throw new Error(`HTTP error! Status: ${response.status}`);
-  //       }
-  //       return response.json();
-  //     })
-  //     .then((responseData) => {
-  //       setRtrData(responseData[0]);
-  //       // Process the response data here
-  //     })
-  //     .catch((error) => {
-  //       console.error("Fetch error:", error);
-  //       // Handle error cases here
-  //     });
-  // };
-
-  // const rtrDetails = () => {
-  //   const options = {
-  //     method: "GET",
-  //     headers: {
-  //       "User-Agent": "insomnia/8.6.1",
-  //     },
-  //   };
-  //   fetch(`http://10.0.0.80:9291/api/email/getLinksById/${mi}`, options)
-  //     .then((response) => {
-  //       if (!response.ok) {
-  //         throw new Error(`HTTP error! Status: ${response.status}`);
-  //       }
-  //       return response.json();
-  //     })
-  //     .then((responseData) => {
-  //       console.log(responseData);
-
-  //       setRtrData(responseData);
-  //       // Process the response data here
-  //     })
-  //     .catch((error) => {
-  //       console.error("Fetch error:", error);
-  //       // Handle error cases here
-  //     });
-  // };
-
-  console.log(rtrData);
+  const handleCandidateChange = (e) => {
+    const { id, value } = e.target;
+    const fieldName = id.replace("rtr", "");
+    setCandidateData((prevData) => ({
+      ...prevData,
+      [fieldName]: value,
+    }));
+  };
 
   //Validation*************************************************
   const newDate = moment().tz("US/Central").format("MM-DD-YYYY");
@@ -286,9 +302,563 @@ const Url = ({ url, id, mail, r, mi }) => {
 
   const StringDate = JSON.stringify(date);
 
-  const submitData = (e, values) => {
+  const candidate = candidateData;
+  const auth = token;
+  const candidateSpeciality = speciality;
+  const experience = totalExperience;
+
+  const reference = references;
+
+  const createCandidate = async (candidate, values, auth, experience) => {
+    const candidateSpeciality = speciality;
+    const checkliststate = states;
+    const raw = JSON.stringify({
+      source: "Checklist",
+      additionalProperties: {},
+      certifications: [{}],
+      city: "",
+      companiesWorkedAt: [{}],
+      contactTime: "",
+      currentCTC: "",
+      dateIssued: "2024-10-24T21:31:00.098Z",
+      dateOfBirth: "",
+      date_added: "2024-10-24T21:31:00.098Z",
+      degree: [{}],
+      designation: [
+        {
+          additionalProperties: {},
+          country: "",
+          countryCode: "",
+          postalCode: "",
+          state: "",
+        },
+      ],
+      desiredShifts: "",
+      eligibleToWorkUS: true,
+      email:
+        candidateData.jobTitle === ""
+          ? formik.values.email
+          : candidateData.email,
+      expirationDate: "",
+      fileHandle: {
+        "@microsoft.graph.downloadUrl": "string",
+        "@odata.context": "string",
+        cTag: "string",
+        createdBy: {
+          application: {
+            displayName: "string",
+            id: "string",
+          },
+          user: {
+            active: true,
+            dateCreated: "2024-10-24T21:31:00.098Z",
+            dateModified: "2024-10-24T21:31:00.098Z",
+            email: "string",
+            firstName: "string",
+            id: "string",
+            isZoomUser: true,
+            lastName: "string",
+            mobileNumber: "string",
+            password: "string",
+            profilePicture: "string",
+            roles: [
+              {
+                id: "string",
+                role: "string",
+              },
+            ],
+            userType: "EXTERNAL",
+          },
+        },
+        createdDateTime: "string",
+        eTag: "string",
+        file: {
+          hashes: {
+            quickXorHash: "string",
+          },
+          mimeType: "string",
+        },
+        fileSystemInfo: {
+          createdDateTime: "string",
+          lastModifiedDateTime: "string",
+        },
+        id: "string",
+        lastModifiedBy: {
+          application: {
+            displayName: "string",
+            id: "string",
+          },
+          user: {
+            active: true,
+            dateCreated: "2024-10-24T21:31:00.098Z",
+            dateModified: "2024-10-24T21:31:00.098Z",
+            email: "string",
+            firstName: "string",
+            id: "string",
+            isZoomUser: true,
+            lastName: "string",
+            mobileNumber: "string",
+            password: "string",
+            profilePicture: "string",
+            roles: [
+              {
+                id: "string",
+                role: "string",
+              },
+            ],
+            userType: "EXTERNAL",
+          },
+        },
+        lastModifiedDateTime: "string",
+        name: "string",
+        parentReference: {
+          driveId: "string",
+          driveType: "string",
+          id: "string",
+          name: "string",
+          path: "string",
+          siteId: "string",
+        },
+        shared: {
+          scope: "string",
+        },
+        size: 0,
+        webUrl: "string",
+      },
+      fullText: "",
+      gender: "",
+      hasLicenseInvestigated: true,
+      id: "",
+      investigationDetails: "",
+      issuingState: "",
+      lastName:
+        candidateData.jobTitle === ""
+          ? formik.values.lastname
+          : candidateData.lastName,
+      last_updated: "",
+      license: [""],
+      licenseNumber: "",
+      licensedStates: "",
+      licenses: [{}],
+      municipality: "",
+      name:
+        candidateData.jobTitle === ""
+          ? formik.values.firstname + " " + formik.values.lastname
+          : candidateData.firstName + " " + candidateData.lastName,
+      otherPhone: "",
+      phone:
+        candidateData.jobTitle === ""
+          ? formik.values.phoneno
+          : candidateData.phone,
+      preferredCities: candidateData.jobTitle === "" ? checkliststate : [""],
+      preferredDestinations: "",
+      primarySpeciality: candidateSpeciality,
+      profession: "",
+      regions: "",
+      skills: [""],
+      state: "",
+      totalExp: experience,
+      travelStatus: "",
+      university: [{}],
+      workAuthorization: "",
+      zip: "",
+    });
+
+    try {
+      const response = await fetch(
+        "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "X-Tenant": tenant,
+          },
+          body: raw,
+        }
+      );
+
+      const result = await response.json();
+      if (response.ok) {
+        console.log("Data submitted successfully", result);
+      } else {
+        console.error("Error submitting data", result);
+      }
+    } catch (error) {
+      console.error("Network error:", error);
+    }
+  };
+
+  const createCandidatebyFirstReference = async (
+    reference,
+    candidate,
+    values,
+    auth,
+    experience,
+    candidateSpeciality
+  ) => {
+    const raw = JSON.stringify({
+      source: "Checklist",
+      additionalProperties: {},
+      certifications: [{}],
+      city: "",
+      companiesWorkedAt: [{}],
+      contactTime: "",
+      currentCTC: "",
+      dateIssued: "2024-10-24T21:31:00.098Z",
+      dateOfBirth: "",
+      date_added: "2024-10-24T21:31:00.098Z",
+      degree: [{}],
+      designation: [
+        {
+          additionalProperties: {},
+          country: "",
+          countryCode: "",
+          postalCode: "",
+          state: "",
+        },
+      ],
+      desiredShifts: "",
+      eligibleToWorkUS: true,
+      email: reference[0].email,
+      expirationDate: "",
+      fileHandle: {
+        "@microsoft.graph.downloadUrl": "string",
+        "@odata.context": "string",
+        cTag: "string",
+        createdBy: {
+          application: {
+            displayName: "string",
+            id: "string",
+          },
+          user: {
+            active: true,
+            dateCreated: "2024-10-24T21:31:00.098Z",
+            dateModified: "2024-10-24T21:31:00.098Z",
+            email: "string",
+            firstName: "string",
+            id: "string",
+            isZoomUser: true,
+            lastName: "string",
+            mobileNumber: "string",
+            password: "string",
+            profilePicture: "string",
+            roles: [
+              {
+                id: "string",
+                role: "string",
+              },
+            ],
+            userType: "EXTERNAL",
+          },
+        },
+        createdDateTime: "string",
+        eTag: "string",
+        file: {
+          hashes: {
+            quickXorHash: "string",
+          },
+          mimeType: "string",
+        },
+        fileSystemInfo: {
+          createdDateTime: "string",
+          lastModifiedDateTime: "string",
+        },
+        id: "string",
+        lastModifiedBy: {
+          application: {
+            displayName: "string",
+            id: "string",
+          },
+          user: {
+            active: true,
+            dateCreated: "2024-10-24T21:31:00.098Z",
+            dateModified: "2024-10-24T21:31:00.098Z",
+            email: "string",
+            firstName: "string",
+            id: "string",
+            isZoomUser: true,
+            lastName: "string",
+            mobileNumber: "string",
+            password: "string",
+            profilePicture: "string",
+            roles: [
+              {
+                id: "string",
+                role: "string",
+              },
+            ],
+            userType: "EXTERNAL",
+          },
+        },
+        lastModifiedDateTime: "string",
+        name: "string",
+        parentReference: {
+          driveId: "string",
+          driveType: "string",
+          id: "string",
+          name: "string",
+          path: "string",
+          siteId: "string",
+        },
+        shared: {
+          scope: "string",
+        },
+        size: 0,
+        webUrl: "string",
+      },
+      fullText: "",
+      gender: "",
+      hasLicenseInvestigated: true,
+      id: "",
+      investigationDetails: "",
+      issuingState: "",
+      lastName: "",
+      last_updated: "",
+      license: [""],
+      licenseNumber: "",
+      licensedStates: "",
+      licenses: [{}],
+      municipality: "",
+      name: reference[0].name,
+      otherPhone: "",
+      phone: reference[0].phoneno,
+      preferredCities: [""],
+      preferredDestinations: "",
+      primarySpeciality: candidateSpeciality,
+      profession: "",
+      regions: "",
+      skills: [""],
+      state: "",
+      totalExp: experience,
+      travelStatus: "",
+      university: [{}],
+      workAuthorization: "",
+      zip: "",
+    });
+    console.log("firstReferneceAPI", raw);
+
+    if (
+      references[0]?.name !== "" &&
+      references[0]?.phoneno !== "" &&
+      references[0]?.email !== ""
+    ) {
+      try {
+        const response = await fetch(
+          "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+              "X-Tenant": tenant,
+            },
+            body: raw,
+          }
+        );
+
+        const result = await response.json();
+        if (response.ok) {
+          console.log("Data submitted successfully", result);
+        } else {
+          console.error("Error submitting data", result);
+        }
+      } catch (error) {
+        console.error("Network error:", error);
+      }
+    } else {
+      console.log("Job title is not empty, API call skipped.");
+    }
+  };
+
+  const createCandidatebySecondReference = async (
+    reference,
+    candidate,
+    values,
+    auth,
+    experience,
+    candidateSpeciality
+  ) => {
+    const raw = JSON.stringify({
+      source: "Checklist",
+      additionalProperties: {},
+      certifications: [{}],
+      city: "",
+      companiesWorkedAt: [{}],
+      contactTime: "",
+      currentCTC: "",
+      dateIssued: "2024-10-24T21:31:00.098Z",
+      dateOfBirth: "",
+      date_added: "2024-10-24T21:31:00.098Z",
+      degree: [{}],
+      designation: [
+        {
+          additionalProperties: {},
+          country: "",
+          countryCode: "",
+          postalCode: "",
+          state: "",
+        },
+      ],
+      desiredShifts: "",
+      eligibleToWorkUS: true,
+      email: reference[1].email,
+      expirationDate: "",
+      fileHandle: {
+        "@microsoft.graph.downloadUrl": "string",
+        "@odata.context": "string",
+        cTag: "string",
+        createdBy: {
+          application: {
+            displayName: "string",
+            id: "string",
+          },
+          user: {
+            active: true,
+            dateCreated: "2024-10-24T21:31:00.098Z",
+            dateModified: "2024-10-24T21:31:00.098Z",
+            email: "string",
+            firstName: "string",
+            id: "string",
+            isZoomUser: true,
+            lastName: "string",
+            mobileNumber: "string",
+            password: "string",
+            profilePicture: "string",
+            roles: [
+              {
+                id: "string",
+                role: "string",
+              },
+            ],
+            userType: "EXTERNAL",
+          },
+        },
+        createdDateTime: "string",
+        eTag: "string",
+        file: {
+          hashes: {
+            quickXorHash: "string",
+          },
+          mimeType: "string",
+        },
+        fileSystemInfo: {
+          createdDateTime: "string",
+          lastModifiedDateTime: "string",
+        },
+        id: "string",
+        lastModifiedBy: {
+          application: {
+            displayName: "string",
+            id: "string",
+          },
+          user: {
+            active: true,
+            dateCreated: "2024-10-24T21:31:00.098Z",
+            dateModified: "2024-10-24T21:31:00.098Z",
+            email: "string",
+            firstName: "string",
+            id: "string",
+            isZoomUser: true,
+            lastName: "string",
+            mobileNumber: "string",
+            password: "string",
+            profilePicture: "string",
+            roles: [
+              {
+                id: "string",
+                role: "string",
+              },
+            ],
+            userType: "EXTERNAL",
+          },
+        },
+        lastModifiedDateTime: "string",
+        name: "string",
+        parentReference: {
+          driveId: "string",
+          driveType: "string",
+          id: "string",
+          name: "string",
+          path: "string",
+          siteId: "string",
+        },
+        shared: {
+          scope: "string",
+        },
+        size: 0,
+        webUrl: "string",
+      },
+      fullText: "",
+      gender: "",
+      hasLicenseInvestigated: true,
+      id: "",
+      investigationDetails: "",
+      issuingState: "",
+      lastName: "",
+      last_updated: "",
+      license: [""],
+      licenseNumber: "",
+      licensedStates: "",
+      licenses: [{}],
+      municipality: "",
+      name: reference[1].name,
+      otherPhone: "",
+      phone: reference[1].phoneno,
+      preferredCities: [""],
+      preferredDestinations: "",
+      primarySpeciality: candidateSpeciality,
+      profession: "",
+      regions: "",
+      skills: [""],
+      state: "",
+      totalExp: experience,
+      travelStatus: "",
+      university: [{}],
+      workAuthorization: "",
+      zip: "",
+    });
+    console.log("secondReferencesAPI", raw);
+
+    if (
+      references[0]?.name !== "" &&
+      references[0]?.phoneno !== "" &&
+      references[0]?.email !== ""
+    ) {
+      try {
+        const response = await fetch(
+          "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+              "X-Tenant": tenant,
+            },
+            body: raw,
+          }
+        );
+
+        const result = await response.json();
+        if (response.ok) {
+          console.log("Data submitted successfully", result);
+        } else {
+          console.error("Error submitting data", result);
+        }
+      } catch (error) {
+        console.error("Network error:", error);
+      }
+    } else {
+      console.log("Job title is not empty, API call skipped.");
+    }
+  };
+
+  const submitData = (e, values, candidateData, token) => {
+    createCandidate(candidateData, token);
+    createCandidatebyFirstReference(references, token);
+    createCandidatebySecondReference(references, token);
+
     const dateofbith = moment(values.dob).format("MM/DD/YYYY");
-    // console.log(values.dob);
     const inputDate = JSON.stringify(dateofbith);
     e.preventDefault();
     const th =
@@ -670,15 +1240,38 @@ const Url = ({ url, id, mail, r, mi }) => {
             title: "Response received.",
             text: "Thank you! Your response has been received.",
             icon: "success",
+            showConfirmButton: true, // Ensures a confirm button is displayed
+          }).then(() => {
+            window.location.reload();
+            setLoading(true);
           });
-          setLoading(true);
-          window.location.reload();
         }
       })
       .catch(function (error) {
         alert(error);
       });
   };
+
+  const authToken = () => {
+    const options = {
+      method: "POST",
+      headers: {
+        cookie: "JSESSIONID=B666C8018B66CA7C561B76806A7C9778",
+        "Content-Type": "application/json",
+        "User-Agent": "insomnia/8.6.1",
+      },
+      body: '{"email":"archit.mishra@midastravel.org","password":"MidasAdmin@3321"}',
+    };
+
+    fetch("https://hrmsapi.theartemis.ai/api/v1/user/authenticate", options)
+      .then((response) => response.json())
+      .then((response) => setToken(response.response))
+      .catch((err) => console.error(err));
+  };
+
+  useEffect(() => {
+    authToken();
+  }, []);
 
   // const handleReferences = (e, index) => {
   //   e.preventDefault();
@@ -696,17 +1289,42 @@ const Url = ({ url, id, mail, r, mi }) => {
   // };
 
   const handleReferences = (e, index) => {
-    e.preventDefault();
     const { name, value } = e.target;
-
-    // Create a copy of the references array
     const updatedReferences = [...references];
-    updatedReferences[index][name] = value;
 
+    if (name === "phoneno") {
+      // 1. Remove all non-digit characters
+      const digits = value.replace(/\D/g, "");
+
+      // 2. Make sure we only proceed if we have at least 10 digits (after trimming)
+      const cleanedDigits = digits.startsWith("1")
+        ? digits.slice(1, 11)
+        : digits.slice(0, 10);
+
+      const rawPhone = `+1${cleanedDigits}`;
+
+      // Only format and set values if cleanedDigits is exactly 10 digits
+      if (cleanedDigits.length < 10) {
+        updatedReferences[index][name] = value; // keep user input
+        updatedReferences[index]._rawPhone = rawPhone; // still set raw
+        setReferenes(updatedReferences);
+        return;
+      }
+
+      // 3. Format display version
+      let formatted = rawPhone.replace(
+        /^\+1(\d{3})(\d{3})(\d{4})$/,
+        (_, p1, p2, p3) => `+1 (${p1}) ${p2}-${p3}`
+      );
+
+      updatedReferences[index][name] = formatted;
+      updatedReferences[index]._rawPhone = rawPhone;
+    }
+
+    // Your existing duplicate checking logic
     if (name === "name" && index !== 0) {
       const firstReferenceName = updatedReferences[0].name;
       if (value === firstReferenceName) {
-        // Alert or handle error for duplicate name
         alert(
           "Reference name cannot be the same as the first reference's name"
         );
@@ -714,11 +1332,11 @@ const Url = ({ url, id, mail, r, mi }) => {
       }
     }
 
-    // Check if the entered phone number or email matches the first reference's details
     if (name === "phoneno" && index !== 0) {
-      const firstPhoneNo = updatedReferences[0].phoneno;
-      if (value === firstPhoneNo) {
-        // Alert or handle error for duplicate phone number
+      const currentDigits = updatedReferences[index].phoneno.replace(/\D/g, "");
+      const firstDigits =
+        updatedReferences[0].phoneno?.replace(/\D/g, "") || "";
+      if (currentDigits === firstDigits && currentDigits.length > 1) {
         alert("Phone number cannot be the same as the first reference");
         return;
       }
@@ -727,31 +1345,15 @@ const Url = ({ url, id, mail, r, mi }) => {
     if (name === "email" && index !== 0) {
       const firstEmail = updatedReferences[0].email;
       if (value === firstEmail) {
-        // Alert or handle error for duplicate email
         alert("Email cannot be the same as the first reference");
         return;
       }
     }
 
-    // Update state with the modified references array
     setReferenes(updatedReferences);
   };
 
   const tableData = () => {
-    // const options = { method: "GET" };
-    // const options = {
-    //   method: "GET",
-    //   // hostname: "localhost",
-    //   // port: "9000",
-    //   // path: "/list/getCheckList/lpn?=&id=5434546543654654",
-    //   headers: {
-    //     // cookie: "JSESSIONID=6DCFF82A8DE56CF44793B1A3A5F0D827",
-    //     "User-Agent": "insomnia/8.6.1",
-    //     "content-type": "application/json",
-    //     "Content-Length": "0",
-    //   },
-    // };
-    // console.log("IIIID", id, `${host}list/getCheckList/${url}?id=${id}`);
     let options = {
       method: "GET",
       headers: {
@@ -774,15 +1376,6 @@ const Url = ({ url, id, mail, r, mi }) => {
         }
       })
       .catch((err) => console.error("error:" + err));
-    // fetch(`${host}list/getCheckList/${url}?id=${id}`, options)
-    //   .then((response) => response.json())
-    //   .then((response) => {
-    //     if (response.baseResponse.status === 1) {
-    //       setData(response.response);
-    //     } else {
-    //       router.push("/404");
-    //     }
-    //   });
   };
 
   useEffect(() => tableData(), []);
@@ -797,10 +1390,6 @@ const Url = ({ url, id, mail, r, mi }) => {
     errors,
     touched,
   } = formik;
-  // async function myRoute(req: NextApiRequest, res: NextApiResponse) {
-  //   const detectedIp = requestIp.getClientIp(req);
-  //   res.status(200).json({ ip: detectedIp });
-  // }
 
   return (
     <>
@@ -864,12 +1453,43 @@ const Url = ({ url, id, mail, r, mi }) => {
                           touched={formik.touched.lastname}
                         />
 
-                        <InputField
+<InputField
                           label={"Phone number*"}
                           value={values.phoneno}
-                          type={"number"}
+                          type={"tel"}
                           placeholder={"Enter Phone number"}
-                          onChange={handleChange}
+                          onChange={(e) => {
+                            const input = e.target.value;
+
+                            // 1. Remove all non-digit characters
+                            const digits = input.replace(/\D/g, "");
+
+                            // 2. Ensure starts with +1
+                            let formatted = "+1";
+                            if (digits.startsWith("1") && digits.length > 1) {
+                              formatted += digits.substring(1, 11); // Take next 10 digits
+                            } else if (!digits.startsWith("1")) {
+                              formatted += digits.substring(0, 10); // Take first 10 digits
+                            }
+
+                            // 3. Add formatting
+                            if (formatted.length > 2) {
+                              formatted = formatted.replace(
+                                /^(\+1)(\d{0,3})(\d{0,3})(\d{0,4})/,
+                                (_, p1, p2, p3, p4) =>
+                                  [
+                                    p1,
+                                    p2 && ` (${p2}`,
+                                    p3 && `) ${p3}`,
+                                    p4 && `-${p4}`,
+                                  ]
+                                    .filter(Boolean)
+                                    .join("")
+                              );
+                            }
+
+                            formik.setFieldValue("phoneno", formatted);
+                          }}
                           onBlur={handleBlur}
                           id={"validationCustom03"}
                           required={true}
@@ -1002,8 +1622,8 @@ const Url = ({ url, id, mail, r, mi }) => {
                       <div className="refences-div">
                         {references.map((item, index) => (
                           <div className="form-group row mb-3 d-flex align-items-center">
-                            <InputField
-                              label={"Referre's Name"}
+                            <NotRequiredInputField
+                              label={"Name"}
                               value={item.name}
                               type={"text"}
                               placeholder={"Enter Full Name"}
@@ -1012,20 +1632,36 @@ const Url = ({ url, id, mail, r, mi }) => {
                               name={"name"}
                               required={false}
                             />
-                            <InputField
-                              label={"Referre's Phone"}
-                              value={item.phoneno}
-                              type={"number"}
-                              placeholder={"Enter Phone number"}
+                            <NotRequiredInputField
+                              label={"Phone"}
+                              value={item.phoneno || "+1"}
+                              type={"tel"}
+                              placeholder={"Enter Phone Number"}
                               onChange={(e) => handleReferences(e, index)}
+                              onBlur={() => {
+                                // Validate on blur (optional)
+                                if (!/^\+1\d{10}$/.test(item._rawPhone || "")) {
+                                  alert(
+                                    "Phone number must be in the format +1 followed by 10 digits"
+                                  );
+                                }
+                              }}
                               id={"validationCustom03"}
                               name={"phoneno"}
                               required={false}
+                              // Add these if your NotRequiredInputField supports error display
+                              errors={
+                                item._rawPhone &&
+                                !/^\+1\d{10}$/.test(item._rawPhone)
+                                  ? "Please enter a 10-digit phone number"
+                                  : undefined
+                              }
+                              touched={true}
                             />
-                            <InputField
+                            <NotRequiredInputField
                               label={"Referre's E-mail"}
                               value={item.email}
-                              type={"text"}
+                              type={"email"}
                               placeholder={"Enter Referre's E-mail"}
                               onChange={(e) => handleReferences(e, index)}
                               id={"validationCustom03"}
@@ -1034,6 +1670,68 @@ const Url = ({ url, id, mail, r, mi }) => {
                             />
                           </div>
                         ))}
+                      </div>
+
+                      <div class="form-group row mt-3 mb-3">
+                        <div className="col-md-11">
+                          <span
+                            className="btn  btn-danger"
+                            onChange={() => setActive(!active)}
+                          >
+                            3 Candidate Preferences
+                          </span>
+                        </div>
+                        <div className="col-md-11"></div>
+                      </div>
+                      <div className="prefereed-div">
+                        <div className="form-group">
+                          <div className="row">
+                            <div className="col-md-3">
+                              <h6>Speciality</h6>
+                              <input
+                                type="text"
+                                className="form-control"
+                                id="specialityrtr"
+                                placeholder="Speciality"
+                                value={speciality}
+                                onChange={(e) => setSpeciality(e.target.value)}
+                                required={true}
+                              />
+                            </div>
+
+                            <div className="col-md-3">
+                              <h6>States</h6>
+                              {states.map((state, index) => (
+                                <div key={index} className="input-group mb-3">
+                                  <input
+                                    type="text"
+                                    className="form-control"
+                                    value={state}
+                                    onChange={(event) =>
+                                      handleStateChange(index, event)
+                                    }
+                                    placeholder={`State ${index + 1}`}
+                                  />
+                                  <div className="input-group-append">
+                                    <button
+                                      className="btn btn-danger"
+                                      onClick={() => handleRemoveState(index)}
+                                      disabled={states.length === 1}
+                                    >
+                                      <i className="fas fa-minus"></i>{" "}
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                              <button
+                                className="btn btn-success"
+                                onClick={handleAddState}
+                              >
+                                <i className="fas fa-plus"></i>{" "}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
                       <div class="form-group row mt-3 ">
@@ -1400,6 +2098,86 @@ const Url = ({ url, id, mail, r, mi }) => {
                       Consulting to represent your profile for the position of{" "}
                       {rtrData.jobTitle}.
                     </p>
+                    <div className="rtr-details row mb-4">
+                      <h6
+                        className="mt-2"
+                        style={{ fontWeight: "600", color: "#CB1829" }}
+                      >
+                        Candidate Information
+                      </h6>
+                      <div className="col-md-3 mt-3">
+                        <label>First Name*</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="firstNamertr"
+                          placeholder="First Name"
+                          value={candidateData.firstName}
+                          onChange={handleCandidateChange}
+                          required={true}
+                        />
+                      </div>
+                      <div className="col-md-3 mt-3">
+                        <label>Last Name*</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="lastNamertr"
+                          placeholder="Last Name"
+                          value={candidateData.lastName}
+                          onChange={handleCandidateChange}
+                          required={true}
+                        />
+                      </div>
+                      <div className="col-md-3 mt-3">
+                        <label>Email</label>
+                        <input
+                          type="email"
+                          className="form-control"
+                          id="emailrtr"
+                          placeholder="Email"
+                          value={candidateData.email}
+                          onChange={handleCandidateChange}
+                          required={true}
+                        />
+                      </div>
+                      <div className="col-md-3 mt-3">
+                        <label>Phone No</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="phonertr"
+                          placeholder="Phone Number"
+                          value={candidateData.phone}
+                          onChange={handleCandidateChange}
+                          required={true}
+                        />
+                      </div>
+                      <div className="col-md-3 mt-3">
+                        <label>Speciality</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="specialityrtr"
+                          placeholder="Speciality"
+                          value={speciality}
+                          onChange={(e) => setSpeciality(e.target.value)}
+                          required={true}
+                        />
+                      </div>
+                      <div className="col-md-3 mt-3">
+                        <label>Total Experience</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="experiencertr"
+                          placeholder="Work Experience"
+                          value={totalExperience}
+                          onChange={(e) => setTotalExperience(e.target.value)}
+                          required={true}
+                        />
+                      </div>
+                    </div>
                     <div classname="rtr-details">
                       <h6
                         className="mt-2"
@@ -1545,6 +2323,86 @@ const Url = ({ url, id, mail, r, mi }) => {
                       Consulting to represent your profile for the position of{" "}
                       {rtrData.jobTitle}.
                     </p>
+                    <div className="rtr-details row mb-4">
+                      <h6
+                        className="mt-2"
+                        style={{ fontWeight: "600", color: "#CB1829" }}
+                      >
+                        Candidate Information
+                      </h6>
+                      <div className="col-md-3 mt-3">
+                        <label>First Name*</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="firstNamertr"
+                          placeholder="First Name"
+                          value={candidateData.firstName}
+                          onChange={handleCandidateChange}
+                          required={true}
+                        />
+                      </div>
+                      <div className="col-md-3 mt-3">
+                        <label>Last Name*</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="lastNamertr"
+                          placeholder="Last Name"
+                          value={candidateData.lastName}
+                          onChange={handleCandidateChange}
+                          required={true}
+                        />
+                      </div>
+                      <div className="col-md-3 mt-3">
+                        <label>Email</label>
+                        <input
+                          type="email"
+                          className="form-control"
+                          id="emailrtr"
+                          placeholder="Email"
+                          value={candidateData.email}
+                          onChange={handleCandidateChange}
+                          required={true}
+                        />
+                      </div>
+                      <div className="col-md-3 mt-3">
+                        <label>Phone No</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="phonertr"
+                          placeholder="Phone Number"
+                          value={candidateData.phone}
+                          onChange={handleCandidateChange}
+                          required={true}
+                        />
+                      </div>
+                      <div className="col-md-3 mt-3">
+                        <label>Speciality</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="specialityrtr"
+                          placeholder="Speciality"
+                          value={speciality}
+                          onChange={(e) => setSpeciality(e.target.value)}
+                          required={true}
+                        />
+                      </div>
+                      <div className="col-md-3 mt-3">
+                        <label>Total Experience</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="experiencertr"
+                          placeholder="Work Experience"
+                          value={totalExperience}
+                          onChange={(e) => setTotalExperience(e.target.value)}
+                          required={true}
+                        />
+                      </div>
+                    </div>
                     <div classname="rtr-details">
                       <h6
                         className="mt-2"
@@ -1827,7 +2685,7 @@ const Url = ({ url, id, mail, r, mi }) => {
                       <div className="refences-div">
                         {references.map((item, index) => (
                           <div className="form-group row mb-3 d-flex align-items-center">
-                            <InputField
+                            <NotRequiredInputField
                               label={"Enter Referre's Name"}
                               value={item.name}
                               type={"text"}
@@ -1837,7 +2695,7 @@ const Url = ({ url, id, mail, r, mi }) => {
                               name={"name"}
                               required={false}
                             />
-                            <InputField
+                            <NotRequiredInputField
                               label={"Enter Referre's Phone"}
                               value={item.phoneno}
                               type={"number"}
@@ -1847,10 +2705,10 @@ const Url = ({ url, id, mail, r, mi }) => {
                               name={"phoneno"}
                               required={false}
                             />
-                            <InputField
+                            <NotRequiredInputField
                               label={"Enter Referre's E-mail"}
                               value={item.email}
-                              type={"text"}
+                              type={"email"}
                               placeholder={"Enter Referre's E-mail"}
                               onChange={(e) => handleReferences(e, index)}
                               id={"validationCustom03"}
@@ -1859,6 +2717,68 @@ const Url = ({ url, id, mail, r, mi }) => {
                             />
                           </div>
                         ))}
+                      </div>
+
+                      <div class="form-group row mt-3 mb-3">
+                        <div className="col-md-11">
+                          <span
+                            className="btn  btn-danger"
+                            onChange={() => setActive(!active)}
+                          >
+                            3 Candidate Preferences
+                          </span>
+                        </div>
+                        <div className="col-md-11"></div>
+                      </div>
+                      <div className="prefereed-div">
+                        <div className="form-group">
+                          <div className="row">
+                            <div className="col-md-3">
+                              <h6>Speciality</h6>
+                              <input
+                                type="text"
+                                className="form-control"
+                                id="specialityrtr"
+                                placeholder="Speciality"
+                                value={speciality}
+                                onChange={(e) => setSpeciality(e.target.value)}
+                                required={true}
+                              />
+                            </div>
+
+                            <div className="col-md-3">
+                              <h6>States</h6>
+                              {states.map((state, index) => (
+                                <div key={index} className="input-group mb-3">
+                                  <input
+                                    type="text"
+                                    className="form-control"
+                                    value={state}
+                                    onChange={(event) =>
+                                      handleStateChange(index, event)
+                                    }
+                                    placeholder={`State ${index + 1}`}
+                                  />
+                                  <div className="input-group-append">
+                                    <button
+                                      className="btn btn-danger"
+                                      onClick={() => handleRemoveState(index)}
+                                      disabled={states.length === 1}
+                                    >
+                                      <i className="fas fa-minus"></i>{" "}
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                              <button
+                                className="btn btn-success"
+                                onClick={handleAddState}
+                              >
+                                <i className="fas fa-plus"></i>{" "}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
                       <div class="form-group row mt-3 ">
@@ -2373,11 +3293,74 @@ const Url = ({ url, id, mail, r, mi }) => {
 };
 
 export default Url;
-
-export async function getServerSideProps({ query, res, req }) {
+export async function getServerSideProps({ query }) {
   const { url, id, mail, r, mi } = query;
-  const safeMi = mi ?? null;
-  return {
-    props: { url: url, id: id, mail: mail, r: r, mi: safeMi },
-  };
+  if (mail) {
+    const safeMi = mi ?? null;
+    return {
+      props: { url: url, id: id, mail: mail, r: r, mi: safeMi },
+    };
+  } else {
+    function decryptURL(encryptedURL, secretKey) {
+      try {
+        if (!encryptedURL) return null; // Prevent errors if URL is missing
+        const decodedURL = decodeURIComponent(encryptedURL);
+        const encryptedBase64 = Buffer.from(decodedURL, "base64").toString();
+        const bytes = CryptoJS.AES.decrypt(encryptedBase64, secretKey);
+        const decryptedURL = bytes.toString(CryptoJS.enc.Utf8);
+        if (!decryptedURL) throw new Error("Decryption failed");
+        return decryptedURL; // Ensure we return an object
+      } catch (error) {
+        console.error("Decryption error:", error);
+        return null;
+      }
+    }
+    function parseQueryString(queryString) {
+      const queryUrl = queryString.includes("?")
+        ? queryString.split("?")[0]
+        : queryString;
+      const query = queryString.includes("?")
+        ? queryString.split("?")[1]
+        : queryString;
+      const params = new URLSearchParams(query);
+
+      const result = {
+        id: params.get("id") || "",
+        mail: params.get("mail") || "",
+        r: params.get("r") || "",
+        mi: params.get("mi") || "",
+        tenant: params.get("tenant") || "",
+        url: queryUrl, // Hardcoded as per expected output
+      };
+
+      return result;
+    }
+
+    const secretKey = "secretHello"; // Replace with your actual AES key
+    const decryptedData = url ? decryptURL(url, secretKey) : null;
+    let jsonObject;
+    if (decryptedData) {
+      jsonObject = parseQueryString(decryptedData);
+    }
+    // Ensure we are correctly extracting values from decryptedData
+    return {
+      props: {
+        url: jsonObject.url,
+        id: jsonObject?.id,
+        mail: jsonObject?.mail,
+        r: jsonObject?.r,
+        mi: jsonObject?.mi,
+        tenant: jsonObject?.tenant,
+      },
+    };
+  }
 }
+
+// export async function getServerSideProps({ query, res, req }) {
+//   const { url, id, mail, r, mi } = query;
+//   console.log("queryy", query);
+//   const safeMi = mi ?? null;
+//   return {
+//     props: { url: url, id: id, mail: mail, r: r, mi: safeMi },
+//   };
+// }
