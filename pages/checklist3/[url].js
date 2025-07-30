@@ -468,7 +468,6 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     try {
       const response = await fetch(
         "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
-        "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
         {
           method: "POST",
           headers: {
@@ -646,7 +645,6 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     ) {
       try {
         const response = await fetch(
-          "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
           "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
           {
             method: "POST",
@@ -828,7 +826,6 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     ) {
       try {
         const response = await fetch(
-          "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
           "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
           {
             method: "POST",
