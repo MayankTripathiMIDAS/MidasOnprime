@@ -158,9 +158,10 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       method: "GET",
       headers: {
         "accept": "*/*",
-        "X-Tenant": tenant, // Make sure this value is correct
-      }
-    
+        "X-Tenant": tenant,
+        "Content-Type": "application/json" // Add this
+      },
+      mode: "cors" // Explicitly enable CORS
     };
   
     const url = mi
