@@ -329,6 +329,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       currentCTC: "",
       dateIssued: "2024-10-24T21:31:00.098Z",
       dateOfBirth: candidate?.dob.toString(),
+      dateOfBirth: candidate?.dob.toString(),
       date_added: "2024-10-24T21:31:00.098Z",
       degree: [{}],
       designation: [
@@ -342,6 +343,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       ],
       desiredShifts: "",
       eligibleToWorkUS: true,
+      email: candidate.email,
       email: candidate.email,
       expirationDate: "",
       fileHandle: {
@@ -436,6 +438,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       investigationDetails: "",
       issuingState: "",
       lastName: candidate?.lastName,
+      lastName: candidate?.lastName,
       last_updated: "",
       license: [""],
       licenseNumber: "",
@@ -443,7 +446,9 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       licenses: [{}],
       municipality: "",
       name: candidate?.firstname + " " + candidate?.lastname,
+      name: candidate?.firstname + " " + candidate?.lastname,
       otherPhone: "",
+      phone: candidate?.phone,
       phone: candidate?.phone,
       preferredCities: candidateData.jobTitle === "" ? checkliststate : [""],
       preferredDestinations: "",
@@ -462,11 +467,13 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     try {
       const response = await fetch(
         "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
+        "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            "X-Tenant": tenant,
             "X-Tenant": tenant,
           },
           body: raw,
@@ -640,11 +647,13 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       try {
         const response = await fetch(
           "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
+          "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
+              "X-Tenant": tenant,
               "X-Tenant": tenant,
             },
             body: raw,
@@ -821,11 +830,13 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       try {
         const response = await fetch(
           "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
+          "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
+              "X-Tenant": tenant,
               "X-Tenant": tenant,
             },
             body: raw,
@@ -872,6 +883,8 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
   }
 
   const submitData = (e, values, candidateData, token) => {
+    console.log("values", values, candidateData);
+    createCandidate(values, token);
     console.log("values", values, candidateData);
     createCandidate(values, token);
     createCandidatebyFirstReference(references, token);
@@ -1233,6 +1246,10 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
         "Content-Type": "application/json",
         "X-Tenant": tenant,
       },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Tenant": tenant,
+      },
       data: {
         firstname: values.firstname,
         lastname: values.lastname,
@@ -1385,6 +1402,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       method: "GET",
       headers: {
         "User-Agent": "insomnia/8.6.1",
+        "X-Tenant": tenant,
         "X-Tenant": tenant,
       },
     };
@@ -3319,6 +3337,7 @@ export async function getServerSideProps({ query }) {
         r: params.get("r") || "",
         mi: params.get("mi") || "",
         tenant: params.get("tenant") || "",
+        tenant: params.get("tenant") || "",
         url: queryUrl, // Hardcoded as per expected output
       };
 
@@ -3332,6 +3351,7 @@ export async function getServerSideProps({ query }) {
       jsonObject = parseQueryString(decryptedData);
     }
     console.log("jsonObject", jsonObject);
+    console.log("jsonObject", jsonObject);
     // Ensure we are correctly extracting values from decryptedData
     return {
       props: {
@@ -3340,6 +3360,7 @@ export async function getServerSideProps({ query }) {
         mail: jsonObject?.mail,
         r: jsonObject?.r,
         mi: jsonObject?.mi,
+        tenant: jsonObject?.tenant,
         tenant: jsonObject?.tenant,
       },
     };
