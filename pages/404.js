@@ -14,8 +14,8 @@ const index = () => {
       },
       body: JSON.stringify({
         id: "66eb3db89b7a936d1b86e767",
-        email: "anubhav.kaushik@midasconsulting.org",
-        recruiterEmail: "anubhav.kaushik@midasconsulting.org",
+        email: "dheeraj.singh@midasconsulting.org",
+        recruiterEmail: "dheeraj.singh@midasconsulting.org",
         linkHtml: window.location.href,
         checklistName: "lpn",
         mailSelection: "Checklist",

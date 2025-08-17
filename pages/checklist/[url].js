@@ -16,10 +16,13 @@ import ReactDatePicker from "react-datepicker";
 import { host } from "../../static";
 import requestIp from "request-ip";
 import { NextApiRequest, NextApiResponse } from "next";
+import { he } from "date-fns/locale";
 
-const Url = ({ url }) => {
+const Url = ({ url, tenant }) => {
   const router = useRouter();
-
+  const headers = {
+        "x-tenant": "670a48b168b0640a262870c4",
+      };
   const [active, setActive] = useState(false);
   const [html, setHTML] = useState("");
   const [dob, setDob] = useState(false);
@@ -477,7 +480,7 @@ const Url = ({ url }) => {
   const tableData = () => {
     const options = { method: "GET" };
 
-    fetch(`${host}list/getCheckList/${url}`, options)
+    fetch(`${host}list/getCheckList/${url}`, options, headers)
       .then((response) => response.json())
       .then((response) => {
         if (response.baseResponse.status === 1) {

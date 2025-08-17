@@ -456,7 +456,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       zip: "",
     });
 
-    try {
+    
       const response = await fetch(
         "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
         {
@@ -476,9 +476,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       } else {
         console.error("Error submitting data", result);
       }
-    } catch (error) {
-      console.error("Network error:", error);
-    }
+    
   };
 
   const createCandidatebyFirstReference = async (
@@ -635,7 +633,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       references[0]?.phoneno !== "" &&
       references[0]?.email !== ""
     ) {
-      try {
+      
         const response = await fetch(
           "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
           {
@@ -655,9 +653,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
         } else {
           console.error("Error submitting data", result);
         }
-      } catch (error) {
-        console.error("Network error:", error);
-      }
+      
     } else {
       console.log("Job title is not empty, API call skipped.");
     }
@@ -817,7 +813,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       references[0]?.phoneno !== "" &&
       references[0]?.email !== ""
     ) {
-      try {
+      
         const response = await fetch(
           "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
           {
@@ -837,9 +833,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
         } else {
           console.error("Error submitting data", result);
         }
-      } catch (error) {
-        console.error("Network error:", error);
-      }
+      
     } else {
       console.log("Job title is not empty, API call skipped.");
     }
