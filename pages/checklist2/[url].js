@@ -173,14 +173,17 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     const options = {
       method: "GET",
       headers: {
-        "User-Agent": "insomnia/8.6.1",
+        "accept": "*/*",
+        "X-Tenant": tenant,
+        "Content-Type": "application/json" // Add this
       },
+      mode: "cors" // Explicitly enable CORS
     };
-
+  
     const url = mi
-      ? `https://api.theartemis.ai/api/email/getLinksById/${mi}`
-      : `https://api.theartemis.ai/api/email/getAllLinks/${decryptedMail}`;
-
+      ? `https://tenantapi.theartemis.ai/api/email/getLinksById/${mi}`
+      : `https://tenantapi.theartemis.ai/api/email/getAllLinks/${decryptedMail}`;
+  
     fetch(url, options)
       .then((response) => {
         if (!response.ok) {
@@ -1245,11 +1248,13 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
         cookie: "JSESSIONID=B666C8018B66CA7C561B76806A7C9778",
         "Content-Type": "application/json",
         "User-Agent": "insomnia/8.6.1",
+        "X-tenant": tenant,
+        
       },
-      body: '{"email":"archit.mishra@midastravel.org","password":"MidasAdmin@3321"}',
+      body: '{"email":"archit.mishra@midasconsulting.org","password":"MidasAdmin@3321"}',
     };
 
-    fetch("https://hrmsapi.theartemis.ai/api/v1/user/authenticate", options)
+    fetch("https://tenanthrmsapi.theartemis.ai/api/v1/user/authenticate", options)
       .then((response) => response.json())
       .then((response) => setToken(response.response))
       .catch((err) => console.error(err));

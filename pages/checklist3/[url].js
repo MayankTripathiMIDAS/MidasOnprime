@@ -106,7 +106,15 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     validationSchema: Yup.object({
       firstname: Yup.string().required("Required"),
       lastname: Yup.string().required("Required"),
-      phoneno: Yup.string().required("Required"),
+      phoneno: Yup.string()
+        .required("US phone number with +1 is required")
+        .matches(/^\+1\d{10}$/, "Please enter a 10-digit number)")
+        .transform((value) => {
+          // Auto-correct partial entries
+          if (!value) return value;
+          const digits = value.replace(/\D/g, "");
+          return `+1${digits.substring(1, 11)}`; // Force +1 + 10 digits
+        }),
       ssn: Yup.string()
         .matches(/^[0-9]+$/, "Please enter only numbers")
         .required("SSN is required")
@@ -149,14 +157,17 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     const options = {
       method: "GET",
       headers: {
-        "User-Agent": "insomnia/8.6.1",
+        "accept": "*/*",
+        "X-Tenant": tenant,
+        "Content-Type": "application/json" // Add this
       },
+      mode: "cors" // Explicitly enable CORS
     };
-
+  
     const url = mi
-      ? `https://api.theartemis.ai/api/email/getLinksById/${mi}`
-      : `https://api.theartemis.ai/api/email/getAllLinks/${decryptedMail}`;
-
+      ? `https://tenantapi.theartemis.ai/api/email/getLinksById/${mi}`
+      : `https://tenantapi.theartemis.ai/api/email/getAllLinks/${decryptedMail}`;
+  
     fetch(url, options)
       .then((response) => {
         if (!response.ok) {
@@ -167,8 +178,6 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       .then((responseData) => {
         setRtrData(responseData[0] || responseData);
         setCandidateData(responseData[0] || responseData);
-
-        // Process the response data here
       })
       .catch((error) => {
         console.error("Fetch error:", error);
@@ -321,6 +330,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       currentCTC: "",
       dateIssued: "2024-10-24T21:31:00.098Z",
       dateOfBirth: candidate?.dob.toString(),
+      dateOfBirth: candidate?.dob.toString(),
       date_added: "2024-10-24T21:31:00.098Z",
       degree: [{}],
       designation: [
@@ -334,6 +344,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       ],
       desiredShifts: "",
       eligibleToWorkUS: true,
+      email: candidate.email,
       email: candidate.email,
       expirationDate: "",
       fileHandle: {
@@ -428,6 +439,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       investigationDetails: "",
       issuingState: "",
       lastName: candidate?.lastName,
+      lastName: candidate?.lastName,
       last_updated: "",
       license: [""],
       licenseNumber: "",
@@ -435,7 +447,9 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       licenses: [{}],
       municipality: "",
       name: candidate?.firstname + " " + candidate?.lastname,
+      name: candidate?.firstname + " " + candidate?.lastname,
       otherPhone: "",
+      phone: candidate?.phone,
       phone: candidate?.phone,
       preferredCities: candidateData.jobTitle === "" ? checkliststate : [""],
       preferredDestinations: "",
@@ -819,6 +833,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
               "X-Tenant": tenant,
+
             },
             body: raw,
           }
@@ -862,6 +877,8 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
   }
 
   const submitData = (e, values, candidateData, token) => {
+    console.log("values", values, candidateData);
+    createCandidate(values, token);
     console.log("values", values, candidateData);
     createCandidate(values, token);
     createCandidatebyFirstReference(references, token);
@@ -1223,6 +1240,10 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
         "Content-Type": "application/json",
         "X-Tenant": tenant,
       },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Tenant": tenant,
+      },
       data: {
         firstname: values.firstname,
         lastname: values.lastname,
@@ -1294,17 +1315,41 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
   //   },[phoneus])
 
   const handleReferences = (e, index) => {
-    e.preventDefault();
     const { name, value } = e.target;
-
-    // Create a copy of the references array
     const updatedReferences = [...references];
-    updatedReferences[index][name] = value;
 
+    if (name === "phoneno") {
+      // 1. Remove all non-digit characters
+      const digits = value.replace(/\D/g, "");
+    
+      // 2. Make sure we only proceed if we have at least 10 digits (after trimming)
+      const cleanedDigits = digits.startsWith("1") ? digits.slice(1, 11) : digits.slice(0, 10);
+    
+      const rawPhone = `+1${cleanedDigits}`;
+    
+      // Only format and set values if cleanedDigits is exactly 10 digits
+      if (cleanedDigits.length < 10) {
+        updatedReferences[index][name] = value; // keep user input
+        updatedReferences[index]._rawPhone = rawPhone; // still set raw
+        setReferenes(updatedReferences);
+        return;
+      }
+    
+      // 3. Format display version
+      let formatted = rawPhone.replace(
+        /^\+1(\d{3})(\d{3})(\d{4})$/,
+        (_, p1, p2, p3) => `+1 (${p1}) ${p2}-${p3}`
+      );
+    
+      updatedReferences[index][name] = formatted;
+      updatedReferences[index]._rawPhone = rawPhone;
+    }
+    
+
+    // Your existing duplicate checking logic
     if (name === "name" && index !== 0) {
       const firstReferenceName = updatedReferences[0].name;
       if (value === firstReferenceName) {
-        // Alert or handle error for duplicate name
         alert(
           "Reference name cannot be the same as the first reference's name"
         );
@@ -1312,11 +1357,11 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       }
     }
 
-    // Check if the entered phone number or email matches the first reference's details
     if (name === "phoneno" && index !== 0) {
-      const firstPhoneNo = updatedReferences[0].phoneno;
-      if (value === firstPhoneNo) {
-        // Alert or handle error for duplicate phone number
+      const currentDigits = updatedReferences[index].phoneno.replace(/\D/g, "");
+      const firstDigits =
+        updatedReferences[0].phoneno?.replace(/\D/g, "") || "";
+      if (currentDigits === firstDigits && currentDigits.length > 1) {
         alert("Phone number cannot be the same as the first reference");
         return;
       }
@@ -1325,16 +1370,13 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     if (name === "email" && index !== 0) {
       const firstEmail = updatedReferences[0].email;
       if (value === firstEmail) {
-        // Alert or handle error for duplicate email
         alert("Email cannot be the same as the first reference");
         return;
       }
     }
 
-    // Update state with the modified references array
     setReferenes(updatedReferences);
   };
-
   const tableData = () => {
     // const options = { method: "GET" };
     // const options = {
@@ -1354,6 +1396,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       method: "GET",
       headers: {
         "User-Agent": "insomnia/8.6.1",
+        "X-Tenant": tenant,
         "X-Tenant": tenant,
       },
     };
@@ -1466,9 +1509,40 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                         <InputField
                           label={"Phone number*"}
                           value={values.phoneno}
-                          type={"number"}
+                          type={"tel"}
                           placeholder={"Enter Phone number"}
-                          onChange={handleChange}
+                          onChange={(e) => {
+                            const input = e.target.value;
+
+                            // 1. Remove all non-digit characters
+                            const digits = input.replace(/\D/g, "");
+
+                            // 2. Ensure starts with +1
+                            let formatted = "+1";
+                            if (digits.startsWith("1") && digits.length > 1) {
+                              formatted += digits.substring(1, 11); // Take next 10 digits
+                            } else if (!digits.startsWith("1")) {
+                              formatted += digits.substring(0, 10); // Take first 10 digits
+                            }
+
+                            // 3. Add formatting
+                            if (formatted.length > 2) {
+                              formatted = formatted.replace(
+                                /^(\+1)(\d{0,3})(\d{0,3})(\d{0,4})/,
+                                (_, p1, p2, p3, p4) =>
+                                  [
+                                    p1,
+                                    p2 && ` (${p2}`,
+                                    p3 && `) ${p3}`,
+                                    p4 && `-${p4}`,
+                                  ]
+                                    .filter(Boolean)
+                                    .join("")
+                              );
+                            }
+
+                            formik.setFieldValue("phoneno", formatted);
+                          }}
                           onBlur={handleBlur}
                           id={"validationCustom03"}
                           required={true}
@@ -1594,7 +1668,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                             className="btn  btn-danger"
                             onChange={() => setActive(!active)}
                           >
-                            2 professional References. (One must be supervisor)
+                            Professional References (1 must be of supervisor)
                           </span>
                         </div>
                         <div className="col-md-11"></div>
@@ -1604,7 +1678,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                         {references.map((item, index) => (
                           <div className="form-group row mb-3 d-flex align-items-center">
                             <NotRequiredInputField
-                              label={"Referre's Name"}
+                              label={"Name"}
                               value={item.name}
                               type={"text"}
                               placeholder={"Enter Full Name"}
@@ -1614,20 +1688,33 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                               required={false}
                             />
                             <NotRequiredInputField
-                              label={"Referre's Phone"}
-                              value={item.phoneno}
-                              type={"number"}
-                              placeholder={"Enter Phone number"}
+                              label={"Phone"}
+                              value={item.phoneno || "+1"}
+                              type={"tel"}
+                              placeholder={"Enter Phone Number"}
                               onChange={(e) => handleReferences(e, index)}
+                              onBlur={() => {
+                                // Validate on blur (optional)
+                                if (!/^\+1\d{10}$/.test(item._rawPhone || "")) {
+                                  alert("Phone number must be in the format +1 followed by 10 digits");
+                                }
+                              }}
                               id={"validationCustom03"}
                               name={"phoneno"}
                               required={false}
+                              // Add these if your NotRequiredInputField supports error display
+                              errors={
+                                item._rawPhone && !/^\+1\d{10}$/.test(item._rawPhone)
+                                  ? "Please enter a 10-digit phone number"
+                                  : undefined
+                              }
+                              touched={true}
                             />
                             <NotRequiredInputField
-                              label={"Referre's E-mail"}
+                              label={"Email"}
                               value={item.email}
                               type={"email"}
-                              placeholder={"Enter Referre's E-mail"}
+                              placeholder={"Enter Email Address"}
                               onChange={(e) => handleReferences(e, index)}
                               id={"validationCustom03"}
                               name={"email"}
@@ -1643,7 +1730,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                             className="btn  btn-danger"
                             onChange={() => setActive(!active)}
                           >
-                            3 Candidate Preferences
+                            Candidate Preferences
                           </span>
                         </div>
                         <div className="col-md-11"></div>
@@ -2504,7 +2591,8 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                         <InputField
                           label={"Enter Phone number*"}
                           value={values.phoneno}
-                          type={"number"}
+                          type={"tel"}
+                          // maxLength={10}
                           placeholder={"Enter Phone number"}
                           onChange={handleChange}
                           onBlur={handleBlur}
@@ -2652,7 +2740,8 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                             <NotRequiredInputField
                               label={"Enter Referre's Phone"}
                               value={item.phoneno}
-                              type={"number"}
+                              type={"tel"}
+                              // maxLength={10}
                               placeholder={"Enter Phone number"}
                               onChange={(e) => handleReferences(e, index)}
                               id={"validationCustom03"}
@@ -3242,6 +3331,7 @@ export async function getServerSideProps({ query }) {
         r: params.get("r") || "",
         mi: params.get("mi") || "",
         tenant: params.get("tenant") || "",
+        tenant: params.get("tenant") || "",
         url: queryUrl, // Hardcoded as per expected output
       };
 
@@ -3255,6 +3345,7 @@ export async function getServerSideProps({ query }) {
       jsonObject = parseQueryString(decryptedData);
     }
     console.log("jsonObject", jsonObject);
+    console.log("jsonObject", jsonObject);
     // Ensure we are correctly extracting values from decryptedData
     return {
       props: {
@@ -3263,6 +3354,7 @@ export async function getServerSideProps({ query }) {
         mail: jsonObject?.mail,
         r: jsonObject?.r,
         mi: jsonObject?.mi,
+        tenant: jsonObject?.tenant,
         tenant: jsonObject?.tenant,
       },
     };
