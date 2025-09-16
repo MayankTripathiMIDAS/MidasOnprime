@@ -10,7 +10,7 @@ const Footer = () => {
             <h3>Top Products</h3>
             <Link href="/career">Career</Link>
             <Link href="/healthcare">Healthcare</Link>
-            <Link href="/lifescience">Life Sciences</Link>
+            {/* <Link href="/lifescience">Life Sciences</Link> */}
             <Link href="#">Marketing Service</Link>
           </section>
           <section class="flex-content padding_1x">

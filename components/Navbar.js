@@ -57,7 +57,7 @@ const Navbar = () => {
                   <div className="area-content">
                     <Link href="/career">Career</Link>
                     <Link href="/healthcare">Midas Healthcare</Link>
-                    <Link href="/lifescience">Midas Life Sciences</Link>
+                    {/* <Link href="/lifescience">Midas Life Sciences</Link> */}
                     {/* <Link href="/technology">Midas Technology</Link> */}
                   </div>
                 </div>

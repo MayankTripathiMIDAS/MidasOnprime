@@ -30,11 +30,11 @@ const Bannersquare = () => {
             href={"/healthcare"}
             title="Midas Healthcare"
           />
-          <Smallsquare
+          {/* <Smallsquare
             color="#e5ded8"
             href={"/lifescience"}
             title="Midas Life Sciences"
-          />
+          /> */}
           {/* <Smallsquare color="#002454" href={"#"} title="Midas Life Science"/>
     <Smallsquare color="#004582" href={"#"} title="Midas Enginerring"/> */}
         </div>
