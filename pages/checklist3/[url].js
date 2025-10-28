@@ -321,149 +321,86 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     const candidateSpeciality = speciality;
     const checkliststate = states;
     const raw = JSON.stringify({
-      source: "Checklist",
+  active: true,
+  source: "Checklist",
+  additionalProperties: {},
+  certifications: [],
+  city: "",
+  companiesWorkedAt: [{}],
+  contactTime: "",
+  currentCTC: "",
+  dateIssued: new Date().toISOString(),
+  dateOfBirth: "",
+  date_added: new Date().toISOString(),
+  degree: [],
+  designation: [
+    {
       additionalProperties: {},
-      certifications: [{}],
-      city: "",
-      companiesWorkedAt: [{}],
-      contactTime: "",
-      currentCTC: "",
-      dateIssued: "2024-10-24T21:31:00.098Z",
-      dateOfBirth: candidate?.dob.toString(),
-      dateOfBirth: candidate?.dob.toString(),
-      date_added: "2024-10-24T21:31:00.098Z",
-      degree: [{}],
-      designation: [
-        {
-          additionalProperties: {},
-          country: "",
-          countryCode: "",
-          postalCode: "",
-          state: "",
-        },
-      ],
-      desiredShifts: "",
-      eligibleToWorkUS: true,
-      email: candidate.email,
-      email: candidate.email,
-      expirationDate: "",
-      fileHandle: {
-        "@microsoft.graph.downloadUrl": "string",
-        "@odata.context": "string",
-        cTag: "string",
-        createdBy: {
-          application: {
-            displayName: "string",
-            id: "string",
-          },
-          user: {
-            active: true,
-            dateCreated: "2024-10-24T21:31:00.098Z",
-            dateModified: "2024-10-24T21:31:00.098Z",
-            email: "string",
-            firstName: "string",
-            id: "string",
-            isZoomUser: true,
-            lastName: "string",
-            mobileNumber: "string",
-            password: "string",
-            profilePicture: "string",
-            roles: [
-              {
-                id: "string",
-                role: "string",
-              },
-            ],
-            userType: "EXTERNAL",
-          },
-        },
-        createdDateTime: "string",
-        eTag: "string",
-        file: {
-          hashes: {
-            quickXorHash: "string",
-          },
-          mimeType: "string",
-        },
-        fileSystemInfo: {
-          createdDateTime: "string",
-          lastModifiedDateTime: "string",
-        },
-        id: "string",
-        lastModifiedBy: {
-          application: {
-            displayName: "string",
-            id: "string",
-          },
-          user: {
-            active: true,
-            dateCreated: "2024-10-24T21:31:00.098Z",
-            dateModified: "2024-10-24T21:31:00.098Z",
-            email: "string",
-            firstName: "string",
-            id: "string",
-            isZoomUser: true,
-            lastName: "string",
-            mobileNumber: "string",
-            password: "string",
-            profilePicture: "string",
-            roles: [
-              {
-                id: "string",
-                role: "string",
-              },
-            ],
-            userType: "EXTERNAL",
-          },
-        },
-        lastModifiedDateTime: "string",
-        name: "string",
-        parentReference: {
-          driveId: "string",
-          driveType: "string",
-          id: "string",
-          name: "string",
-          path: "string",
-          siteId: "string",
-        },
-        shared: {
-          scope: "string",
-        },
-        size: 0,
-        webUrl: "string",
-      },
-      fullText: "",
-      gender: "",
-      hasLicenseInvestigated: true,
-      id: "",
-      investigationDetails: "",
-      issuingState: "",
-      lastName: candidate?.lastName,
-      lastName: candidate?.lastName,
-      last_updated: "",
-      license: [""],
-      licenseNumber: "",
-      licensedStates: "",
-      licenses: [{}],
-      municipality: "",
-      name: candidate?.firstname + " " + candidate?.lastname,
-      name: candidate?.firstname + " " + candidate?.lastname,
-      otherPhone: "",
-      phone: candidate?.phone,
-      phone: candidate?.phone,
-      preferredCities: candidateData.jobTitle === "" ? checkliststate : [""],
-      preferredDestinations: "",
-      primarySpeciality: candidateSpeciality,
-      profession: "",
-      regions: "",
-      skills: [""],
+      country: "",
+      countryCode: "",
+      postalCode: "",
       state: "",
-      totalExp: experience,
-      travelStatus: "",
-      university: [{}],
-      workAuthorization: "",
-      zip: "",
-    });
+    },
+  ],
+  desiredShifts: "",
+  eligibleToWorkUS: true,
+
+  email:
+    candidateData.jobTitle === ""
+      ? formik.values.email
+      : candidateData.email,
+
+  expirationDate: "",
+  experience: [],
+  fileHandle: {
+    "@microsoft.graph.downloadUrl": "string",
+    "@odata.context": "string",
+    cTag: "string",
+  },
+  fullText: "",
+  gender: "",
+  hasLicenseInvestigated: true,
+  investigationDetails: "",
+  issuingState: "",
+  last_updated: new Date().toISOString(),
+
+  lastName:
+    candidateData.jobTitle === ""
+      ? formik.values.lastname
+      : candidateData.lastName,
+
+  license: [""],
+  licenseNumber: "",
+  licensedStates: "",
+  licenses: [],
+  municipality: "",
+  name:
+    candidateData.jobTitle === ""
+      ? `${formik.values.firstname} ${formik.values.lastname}`
+      : `${candidateData.firstName} ${candidateData.lastName}`,
+
+  otherPhone: "",
+  phone:
+    candidateData.jobTitle === ""
+      ? formik.values.phoneno
+      : candidateData.phone,
+
+  preferredCities:
+    candidateData.jobTitle === "" ? checkliststate : [""],
+
+  preferredDestinations: "",
+  primarySpeciality: candidateSpeciality,
+  profession: "",
+  regions: "",
+  skills: [""],
+  state: checkliststate,
+  totalExp: totalExperience,
+  travelStatus: "",
+  university: [],
+  workAuthorization: "",
+  zip: "",
+});
+
 
     try {
       const response = await fetch(
@@ -480,15 +417,33 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       );
 
       const result = await response.json();
-      if (response.ok) {
-        console.log("Data submitted successfully", result);
-      } else {
-        console.error("Error submitting data", result);
-      }
-    } catch (error) {
-      console.error("Network error:", error);
+
+    if (response.ok) {
+      swal({
+        title: "Success!",
+        text: "Your data has been saved successfully.",
+        icon: "success",
+        timer: 2000,
+        buttons: false
+      }).then(() => {
+        window.location.reload();
+      });
+    } else {
+      swal({
+        title: "Error!",
+        text: "Failed to save data.",
+        icon: "error"
+      });
     }
-  };
+
+  } catch (error) {
+    swal({
+      title: "Network Error",
+      text: error.message,
+      icon: "error"
+    });
+  }
+};
 
   const createCandidatebyFirstReference = async (
     reference,
@@ -499,144 +454,147 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     candidateSpeciality
   ) => {
     const raw = JSON.stringify({
-      source: "Checklist",
+  active: true,
+  additionalProperties: {},
+  certifications: [],
+  city: "",
+  companiesWorkedAt: [{}],
+  date_added: new Date().toISOString(),
+  contactTime: "",
+  currentCTC: "",
+  dateIssued: new Date().toISOString(),
+  dateOfBirth: "",
+  degree: [],
+  designation: [
+    {
       additionalProperties: {},
-      certifications: [{}],
-      city: "",
-      companiesWorkedAt: [{}],
-      contactTime: "",
-      currentCTC: "",
-      dateIssued: "2024-10-24T21:31:00.098Z",
-      dateOfBirth: "",
-      date_added: "2024-10-24T21:31:00.098Z",
-      degree: [{}],
-      designation: [
-        {
-          additionalProperties: {},
-          country: "",
-          countryCode: "",
-          postalCode: "",
-          state: "",
-        },
-      ],
-      desiredShifts: "",
-      eligibleToWorkUS: true,
-      email: reference[0].email,
-      expirationDate: "",
-      fileHandle: {
-        "@microsoft.graph.downloadUrl": "string",
-        "@odata.context": "string",
-        cTag: "string",
-        createdBy: {
-          application: {
-            displayName: "string",
-            id: "string",
-          },
-          user: {
-            active: true,
-            dateCreated: "2024-10-24T21:31:00.098Z",
-            dateModified: "2024-10-24T21:31:00.098Z",
-            email: "string",
-            firstName: "string",
-            id: "string",
-            isZoomUser: true,
-            lastName: "string",
-            mobileNumber: "string",
-            password: "string",
-            profilePicture: "string",
-            roles: [
-              {
-                id: "string",
-                role: "string",
-              },
-            ],
-            userType: "EXTERNAL",
-          },
-        },
-        createdDateTime: "string",
-        eTag: "string",
-        file: {
-          hashes: {
-            quickXorHash: "string",
-          },
-          mimeType: "string",
-        },
-        fileSystemInfo: {
-          createdDateTime: "string",
-          lastModifiedDateTime: "string",
-        },
-        id: "string",
-        lastModifiedBy: {
-          application: {
-            displayName: "string",
-            id: "string",
-          },
-          user: {
-            active: true,
-            dateCreated: "2024-10-24T21:31:00.098Z",
-            dateModified: "2024-10-24T21:31:00.098Z",
-            email: "string",
-            firstName: "string",
-            id: "string",
-            isZoomUser: true,
-            lastName: "string",
-            mobileNumber: "string",
-            password: "string",
-            profilePicture: "string",
-            roles: [
-              {
-                id: "string",
-                role: "string",
-              },
-            ],
-            userType: "EXTERNAL",
-          },
-        },
-        lastModifiedDateTime: "string",
-        name: "string",
-        parentReference: {
-          driveId: "string",
-          driveType: "string",
-          id: "string",
-          name: "string",
-          path: "string",
-          siteId: "string",
-        },
-        shared: {
-          scope: "string",
-        },
-        size: 0,
-        webUrl: "string",
-      },
-      fullText: "",
-      gender: "",
-      hasLicenseInvestigated: true,
-      id: "",
-      investigationDetails: "",
-      issuingState: "",
-      lastName: "",
-      last_updated: "",
-      license: [""],
-      licenseNumber: "",
-      licensedStates: "",
-      licenses: [{}],
-      municipality: "",
-      name: reference[0].name,
-      otherPhone: "",
-      phone: reference[0].phoneno,
-      preferredCities: [""],
-      preferredDestinations: "",
-      primarySpeciality: candidateSpeciality,
-      profession: "",
-      regions: "",
-      skills: [""],
+      country: "",
+      countryCode: "",
+      postalCode: "",
       state: "",
-      totalExp: experience,
-      travelStatus: "",
-      university: [{}],
-      workAuthorization: "",
-      zip: "",
-    });
+    },
+  ],
+  desiredShifts: "",
+  eligibleToWorkUS: true,
+  email: reference[0].email,
+  expirationDate: "",
+  experience: [],
+  fileHandle: {
+    "@microsoft.graph.downloadUrl": "string",
+    "@odata.context": "string",
+    createdBy: {
+      application: {
+        displayName: "string",
+        id: "string",
+      },
+      user: {
+        active: true,
+        dateCreated: new Date().toISOString(),
+        dateModified: new Date().toISOString(),
+        email: "string",
+        firstName: "string",
+        fullName: "string",
+        id: "string",
+        isZoomUser: true,
+        lastName: "string",
+        mobileNumber: "string",
+        password: "string",
+        profilePicture: "string",
+        roles: [
+          {
+            id: "string",
+            role: "string",
+          },
+        ],
+        userType: "EXTERNAL",
+      },
+    },
+    createdDateTime: "string",
+    cTag: "string",
+    eTag: "string",
+    file: {
+      hashes: {
+        quickXorHash: "string",
+      },
+      mimeType: "string",
+    },
+    fileSystemInfo: {
+      createdDateTime: "string",
+      lastModifiedDateTime: "string",
+    },
+    id: "string",
+    lastModifiedBy: {
+      application: {
+        displayName: "string",
+        id: "string",
+      },
+      user: {
+        active: true,
+        dateCreated: new Date().toISOString(),
+        dateModified: new Date().toISOString(),
+        email: "string",
+        firstName: "string",
+        fullName: "string",
+        id: "string",
+        isZoomUser: true,
+        lastName: "string",
+        mobileNumber: "string",
+        password: "string",
+        profilePicture: "string",
+        roles: [
+          {
+            id: "string",
+            role: "string",
+          },
+        ],
+        userType: "EXTERNAL",
+      },
+    },
+    lastModifiedDateTime: "string",
+    name: "string",
+    parentReference: {
+      driveId: "string",
+      driveType: "string",
+      id: "string",
+      name: "string",
+      path: "string",
+      siteId: "string",
+    },
+    shared: {
+      scope: "string",
+    },
+    size: 0,
+    webUrl: "string",
+  },
+  fullText: "",
+  gender: "",
+  hasLicenseInvestigated: true,
+  investigationDetails: "",
+  issuingState: "",
+  last_updated: new Date().toISOString(),
+  license: [""],
+  licenseNumber: "",
+  licensedStates: "",
+  licenses: [{}],
+  municipality: "",
+  name: reference[0].name,
+  otherPhone: "",
+  phone: reference[0].phoneno,
+  preferredCities: [""],
+  preferredDestinations: "",
+  primarySpeciality: candidateSpeciality,
+  profession: "",
+  regions: "",
+  skills: [""],
+  source: "Checklist",
+  state: "",
+  totalExp: totalExperience,
+  travelStatus: "",
+  university: [{}],
+  workAuthorization: "",
+  zip: "",
+});
+
 
     if (
       references[0]?.name !== "" &&
@@ -658,17 +616,33 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
         );
 
         const result = await response.json();
-        if (response.ok) {
-          console.log("Data submitted successfully", result);
-        } else {
-          console.error("Error submitting data", result);
-        }
-      } catch (error) {
-        console.error("Network error:", error);
-      }
+
+    if (response.ok) {
+      swal({
+        title: "Success!",
+        text: "Your data has been saved successfully.",
+        icon: "success",
+        timer: 2000,
+        buttons: false
+      }).then(() => {
+        window.location.reload();
+      });
     } else {
-      console.log("Job title is not empty, API call skipped.");
+      swal({
+        title: "Error!",
+        text: "Failed to save data.",
+        icon: "error"
+      });
     }
+
+  } catch (error) {
+    swal({
+      title: "Network Error",
+      text: error.message,
+      icon: "error"
+    });
+  }
+}
   };
 
   const createCandidatebySecondReference = async (
@@ -680,149 +654,152 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     candidateSpeciality
   ) => {
     const raw = JSON.stringify({
-      source: "Checklist",
+  active: true,
+  additionalProperties: {},
+  certifications: [],
+  city: "",
+  companiesWorkedAt: [{}],
+  date_added: new Date().toISOString(),
+  contactTime: "",
+  currentCTC: "",
+  dateIssued: new Date().toISOString(),
+  dateOfBirth: "",
+  degree: [],
+  designation: [
+    {
       additionalProperties: {},
-      certifications: [{}],
-      city: "",
-      companiesWorkedAt: [{}],
-      contactTime: "",
-      currentCTC: "",
-      dateIssued: "2024-10-24T21:31:00.098Z",
-      dateOfBirth: "",
-      date_added: "2024-10-24T21:31:00.098Z",
-      degree: [{}],
-      designation: [
-        {
-          additionalProperties: {},
-          country: "",
-          countryCode: "",
-          postalCode: "",
-          state: "",
-        },
-      ],
-      desiredShifts: "",
-      eligibleToWorkUS: true,
-      email: reference[1].email,
-      expirationDate: "",
-      fileHandle: {
-        "@microsoft.graph.downloadUrl": "string",
-        "@odata.context": "string",
-        cTag: "string",
-        createdBy: {
-          application: {
-            displayName: "string",
-            id: "string",
-          },
-          user: {
-            active: true,
-            dateCreated: "2024-10-24T21:31:00.098Z",
-            dateModified: "2024-10-24T21:31:00.098Z",
-            email: "string",
-            firstName: "string",
-            id: "string",
-            isZoomUser: true,
-            lastName: "string",
-            mobileNumber: "string",
-            password: "string",
-            profilePicture: "string",
-            roles: [
-              {
-                id: "string",
-                role: "string",
-              },
-            ],
-            userType: "EXTERNAL",
-          },
-        },
-        createdDateTime: "string",
-        eTag: "string",
-        file: {
-          hashes: {
-            quickXorHash: "string",
-          },
-          mimeType: "string",
-        },
-        fileSystemInfo: {
-          createdDateTime: "string",
-          lastModifiedDateTime: "string",
-        },
-        id: "string",
-        lastModifiedBy: {
-          application: {
-            displayName: "string",
-            id: "string",
-          },
-          user: {
-            active: true,
-            dateCreated: "2024-10-24T21:31:00.098Z",
-            dateModified: "2024-10-24T21:31:00.098Z",
-            email: "string",
-            firstName: "string",
-            id: "string",
-            isZoomUser: true,
-            lastName: "string",
-            mobileNumber: "string",
-            password: "string",
-            profilePicture: "string",
-            roles: [
-              {
-                id: "string",
-                role: "string",
-              },
-            ],
-            userType: "EXTERNAL",
-          },
-        },
-        lastModifiedDateTime: "string",
-        name: "string",
-        parentReference: {
-          driveId: "string",
-          driveType: "string",
-          id: "string",
-          name: "string",
-          path: "string",
-          siteId: "string",
-        },
-        shared: {
-          scope: "string",
-        },
-        size: 0,
-        webUrl: "string",
-      },
-      fullText: "",
-      gender: "",
-      hasLicenseInvestigated: true,
-      id: "",
-      investigationDetails: "",
-      issuingState: "",
-      lastName: "",
-      last_updated: "",
-      license: [""],
-      licenseNumber: "",
-      licensedStates: "",
-      licenses: [{}],
-      municipality: "",
-      name: reference[1].name,
-      otherPhone: "",
-      phone: reference[1].phoneno,
-      preferredCities: [""],
-      preferredDestinations: "",
-      primarySpeciality: candidateSpeciality,
-      profession: "",
-      regions: "",
-      skills: [""],
+      country: "",
+      countryCode: "",
+      postalCode: "",
       state: "",
-      totalExp: experience,
-      travelStatus: "",
-      university: [{}],
-      workAuthorization: "",
-      zip: "",
-    });
+    },
+  ],
+  desiredShifts: "",
+  eligibleToWorkUS: true,
+  email: reference[1].email,
+  expirationDate: "",
+  experience: [],
+  fileHandle: {
+    "@microsoft.graph.downloadUrl": "string",
+    "@odata.context": "string",
+    createdBy: {
+      application: {
+        displayName: "string",
+        id: "string",
+      },
+      user: {
+        active: true,
+        dateCreated: new Date().toISOString(),
+        dateModified: new Date().toISOString(),
+        email: "string",
+        firstName: "string",
+        fullName: "string",
+        id: "string",
+        isZoomUser: true,
+        lastName: "string",
+        mobileNumber: "string",
+        password: "string",
+        profilePicture: "string",
+        roles: [
+          {
+            id: "string",
+            role: "string",
+          },
+        ],
+        userType: "EXTERNAL",
+      },
+    },
+    createdDateTime: "string",
+    cTag: "string",
+    eTag: "string",
+    file: {
+      hashes: {
+        quickXorHash: "string",
+      },
+      mimeType: "string",
+    },
+    fileSystemInfo: {
+      createdDateTime: "string",
+      lastModifiedDateTime: "string",
+    },
+    id: "string",
+    lastModifiedBy: {
+      application: {
+        displayName: "string",
+        id: "string",
+      },
+      user: {
+        active: true,
+        dateCreated: new Date().toISOString(),
+        dateModified: new Date().toISOString(),
+        email: "string",
+        firstName: "string",
+        fullName: "string",
+        id: "string",
+        isZoomUser: true,
+        lastName: "string",
+        mobileNumber: "string",
+        password: "string",
+        profilePicture: "string",
+        roles: [
+          {
+            id: "string",
+            role: "string",
+          },
+        ],
+        userType: "EXTERNAL",
+      },
+    },
+    lastModifiedDateTime: "string",
+    name: "string",
+    parentReference: {
+      driveId: "string",
+      driveType: "string",
+      id: "string",
+      name: "string",
+      path: "string",
+      siteId: "string",
+    },
+    shared: {
+      scope: "string",
+    },
+    size: 0,
+    webUrl: "string",
+  },
+  fullText: "",
+  gender: "",
+  hasLicenseInvestigated: true,
+  investigationDetails: "",
+  issuingState: "",
+  last_updated: new Date().toISOString(),
+  license: [""],
+  licenseNumber: "",
+  licensedStates: "",
+  licenses: [{}],
+  municipality: "",
+  name: reference[1].name,
+  otherPhone: "",
+  phone: reference[1].phoneno,
+  preferredCities: [""],
+  preferredDestinations: "",
+  primarySpeciality: candidateSpeciality,
+  profession: "",
+  regions: "",
+  skills: [""],
+  source: "Checklist",
+  state: "",
+  totalExp: totalExperience,
+  travelStatus: "",
+  university: [{}],
+  workAuthorization: "",
+  zip: "",
+});
+
 
     if (
-      references[0]?.name !== "" &&
-      references[0]?.phoneno !== "" &&
-      references[0]?.email !== ""
+      references[1]?.name !== "" &&
+      references[1]?.phoneno !== "" &&
+      references[1]?.email !== ""
     ) {
       try {
         const response = await fetch(
@@ -840,17 +817,33 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
         );
 
         const result = await response.json();
-        if (response.ok) {
-          console.log("Data submitted successfully", result);
-        } else {
-          console.error("Error submitting data", result);
-        }
-      } catch (error) {
-        console.error("Network error:", error);
-      }
+
+    if (response.ok) {
+      swal({
+        title: "Success!",
+        text: "Your data has been saved successfully.",
+        icon: "success",
+        timer: 2000,
+        buttons: false
+      }).then(() => {
+        window.location.reload();
+      });
     } else {
-      console.log("Job title is not empty, API call skipped.");
+      swal({
+        title: "Error!",
+        text: "Failed to save data.",
+        icon: "error"
+      });
     }
+
+  } catch (error) {
+    swal({
+      title: "Network Error",
+      text: error.message,
+      icon: "error"
+    });
+  }
+}
   };
 
   function formatToUSPhoneNumber(phone) {
