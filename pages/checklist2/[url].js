@@ -431,7 +431,6 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     });
   }
 }
-  };
 
   const createCandidatebyFirstReference = async (
     reference,
@@ -3204,7 +3203,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       {/* <div dangerouslySetInnerHTML={{ __html: html }} /> */}
     </>
   );
-
+}
 
 export default Url;
 export async function getServerSideProps({ query }) {
