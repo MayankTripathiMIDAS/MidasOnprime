@@ -47,6 +47,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     firstname: "",
     lastname: "",
     phoneno: "",
+    otherphone: "",
     email: "",
     dob: "",
     ssn: "",
@@ -98,6 +99,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       firstname: "",
       lastname: "",
       phoneno: "",
+      otherphone: "",
       email: "",
       dob: "",
       ssn: "",
@@ -135,8 +137,8 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       // address: Yup.string().required("Required"),
     }),
     onSubmit: (values) => {
-  submitData(null, values);
-},
+      submitData(null, values);
+    },
   });
 
   var userEmail = mail;
@@ -167,23 +169,22 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       ? `https://tenantapi.theartemis.ai/api/email/getLinksById/${mi}`
       : `https://tenantapi.theartemis.ai/api/email/getAllLinks/${decryptedMail}`;
 
-    fetch(url, options)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then((responseData) => {
-        setRtrData(responseData[0] || responseData);
-        setCandidateData(responseData[0] || responseData);
-      })
-      .catch((error) => {
-        console.error("Fetch error:", error);
-        // Handle error cases here
-      });
+    // fetch(url, options)
+    //   .then((response) => {
+    //     if (!response.ok) {
+    //       throw new Error(`HTTP error! Status: ${response.status}`);
+    //     }
+    //     return response.json();
+    //   })
+    //   .then((responseData) => {
+    //     setRtrData(responseData[0] || responseData);
+    //     setCandidateData(responseData[0] || responseData);
+    //   })
+    //   .catch((error) => {
+    //     console.error("Fetch error:", error);
+    //     // Handle error cases here
+    //   });
   };
-
   const handleCandidateChange = (e) => {
     const { id, value } = e.target;
     const fieldName = id.replace("rtr", "");
@@ -261,23 +262,23 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       tableHTML += `<th class="table-data" colspan="4" scope="row">${ite.name}</th>`;
 
       tableHTML += `<td class="table-data">${ite.value1 === "checked"
-          ? `<div style = "height: 15px; width: 15px; background: #0f875b;  border-radius: 50px; margin-left: 30px" class ="circle-box"></div>`
-          : `<input class="form-check-input" type="radio" name=${ite.name}
+        ? `<div style = "height: 15px; width: 15px; background: #0f875b;  border-radius: 50px; margin-left: 30px" class ="circle-box"></div>`
+        : `<input class="form-check-input" type="radio" name=${ite.name}
                         required disabled > `
         } </td>`;
       tableHTML += `<td class="table-data">${ite.value2 === "checked"
-          ? `<div style = "height: 15px; width: 15px; background: #0f875b;  border-radius: 50px; margin-left: 30px" class ="circle-box"></div>`
-          : `<input class="form-check-input" type="radio" name=${ite.name}
+        ? `<div style = "height: 15px; width: 15px; background: #0f875b;  border-radius: 50px; margin-left: 30px" class ="circle-box"></div>`
+        : `<input class="form-check-input" type="radio" name=${ite.name}
                         required id="flexRadioDefault" disabled >`
         } </td>`;
       tableHTML += `<td class="table-data">${ite.value3 === "checked"
-          ? `<div style = "height: 15px; width: 15px; background: #0f875b;  border-radius: 50px; margin-left: 30px" class ="circle-box"></div>`
-          : `<input class="form-check-input" type="radio" name=${ite.name}
+        ? `<div style = "height: 15px; width: 15px; background: #0f875b;  border-radius: 50px; margin-left: 30px" class ="circle-box"></div>`
+        : `<input class="form-check-input" type="radio" name=${ite.name}
                         required id="flexRadioDefault" disabled >`
         } </td>`;
       tableHTML += `<td class="table-data">${ite.value4 === "checked"
-          ? `<div style = "height: 15px; width: 15px; background: #0f875b;  border-radius: 50px; margin-left: 30px" class ="circle-box"></div>`
-          : `<input class="form-check-input" type="radio" name=${ite.name}
+        ? `<div style = "height: 15px; width: 15px; background: #0f875b;  border-radius: 50px; margin-left: 30px" class ="circle-box"></div>`
+        : `<input class="form-check-input" type="radio" name=${ite.name}
                         required id="flexRadioDefault" disabled >`
         } </td>`;
       tableHTML += "</tbody>";
@@ -313,242 +314,243 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
   const reference = references;
 
   const createCandidate = async (candidate, values, auth, experience) => {
-  // Format the phone number to remove formatting
-  const formatPhoneForAPI = (phone) => {
-    if (!phone) return "";
-    // Remove all non-digit characters except +
-    const cleaned = phone.replace(/\D/g, "");
-    return cleaned.startsWith("1") ? `+${cleaned}` : `+1${cleaned}`;
-  };
+    // Format the phone number to remove formatting
+    const formatPhoneForAPI = (phone) => {
+      if (!phone) return "";
+      // Remove all non-digit characters except +
+      const cleaned = phone.replace(/\D/g, "");
+      return cleaned.startsWith("1") ? `+${cleaned}` : `+1${cleaned}`;
+    };
 
-  // Determine which data source to use
-  const useCandidateData = candidateData && candidateData.jobTitle && candidateData.jobTitle !== "";
-  
-  console.log("Data source check:", {
-    useCandidateData,
-    candidateData: candidateData,
-    jobTitle: candidateData?.jobTitle,
-    formValues: values
-  });
+    // Determine which data source to use
+    const useCandidateData = candidateData && candidateData.jobTitle && candidateData.jobTitle !== "";
 
-  const email = useCandidateData ? candidateData.email : values.email;
-  const lastName = useCandidateData ? candidateData.lastName : values.lastname;
-  const firstName = useCandidateData ? candidateData.firstName : values.firstname;
-  const phone = useCandidateData ? candidateData.phone : values.phoneno;
-  const name = useCandidateData 
-    ? `${candidateData.firstName} ${candidateData.lastName}`
-    : `${values.firstname} ${values.lastname}`;
-
-  console.log("Resolved values:", {
-    email,
-    lastName, 
-    firstName,
-    phone,
-    name,
-    speciality,
-    totalExperience
-  });
-
-  // Validate required fields
-  if (!email || !name.trim() || !phone) {
-    swal({
-      title: "Missing Information!",
-      text: "Please fill in all required fields: Email, Name, and Phone are required.",
-      icon: "error"
+    console.log("Data source check:", {
+      useCandidateData,
+      candidateData: candidateData,
+      jobTitle: candidateData?.jobTitle,
+      formValues: values
     });
-    return;
-  }
 
-  const raw = JSON.stringify({
-    active: true,
-    source: "Checklist",
-    additionalProperties: {},
-    certifications: [],
-    city: "",
-    companiesWorkedAt: [],
-    contactTime: "",
-    currentCTC: "",
-    dateIssued: new Date().toISOString(),
-    dateOfBirth: values.dob ? new Date(values.dob).toISOString().split('T')[0] : "", // Just date part
-    date_added: new Date().toISOString(),
-    degree: [],
-    designation: [
-      {
-        additionalProperties: {},
-        country: "",
-        countryCode: "",
-        postalCode: "",
-        state: "",
-      },
-    ],
-    desiredShifts: "",
-    eligibleToWorkUS: true,
-    email: email,
-    expirationDate: "",
-    experience: [],
-    fileHandle: {
-      "@microsoft.graph.downloadUrl": "",
-      "@odata.context": "",
-      cTag: "",
-      createdBy: {
-        application: {
-          displayName: "",
-          id: "",
-        },
-        user: {
-          active: true,
-          dateCreated: new Date().toISOString(),
-          dateModified: new Date().toISOString(),
-          email: "",
-          firstName: "",
-          fullName: "",
-          id: "",
-          isZoomUser: false,
-          lastName: "",
-          mobileNumber: "",
-          password: "",
-          profilePicture: "",
-          roles: [],
-          userType: "EXTERNAL",
-        },
-      },
-      createdDateTime: new Date().toISOString(),
-      eTag: "",
-      file: {
-        hashes: {
-          quickXorHash: "",
-        },
-        mimeType: "",
-      },
-      fileSystemInfo: {
-        createdDateTime: new Date().toISOString(),
-        lastModifiedDateTime: new Date().toISOString(),
-      },
-      id: "",
-      lastModifiedBy: {
-        application: {
-          displayName: "",
-          id: "",
-        },
-        user: {
-          active: true,
-          dateCreated: new Date().toISOString(),
-          dateModified: new Date().toISOString(),
-          email: "",
-          firstName: "",
-          fullName: "",
-          id: "",
-          isZoomUser: false,
-          lastName: "",
-          mobileNumber: "",
-          password: "",
-          profilePicture: "",
-          roles: [],
-          userType: "EXTERNAL",
-        },
-      },
-      lastModifiedDateTime: new Date().toISOString(),
-      name: "",
-      parentReference: {
-        driveId: "",
-        driveType: "",
-        id: "",
-        name: "",
-        path: "",
-        siteId: "",
-      },
-      shared: {
-        scope: "",
-      },
-      size: 0,
-      webUrl: "",
-    },
-    fullText: "",
-    gender: "",
-    hasLicenseInvestigated: false,
-    investigationDetails: "",
-    issuingState: "",
-    last_updated: new Date().toISOString(),
-    lastName: lastName,
-    license: [],
-    licenseNumber: "",
-    licensedStates: "",
-    licenses: [],
-    municipality: "",
-    name: name,
-    otherPhone: "",
-    phone: formatPhoneForAPI(phone),
-    preferredCities: states && states.length > 0 ? states : [],
-    preferredDestinations: "",
-    primarySpeciality: speciality || "",
-    profession: "",
-    regions: "",
-    skills: [],
-    state: states && states.length > 0 ? states[0] : "",
-    totalExp: totalExperience || "",
-    travelStatus: "",
-    university: [],
-    workAuthorization: "",
-    zip: "",
-  });
+    const email = useCandidateData ? candidateData.email : values.email;
+    const lastName = useCandidateData ? candidateData.lastName : values.lastname;
+    const firstName = useCandidateData ? candidateData.firstName : values.firstname;
+    const phone = useCandidateData ? candidateData.phone : values.phoneno;
+    const otherPhone = useCandidateData ? candidateData.otherphone : values.otherphone;
+    const name = useCandidateData
+      ? `${candidateData.firstName} ${candidateData.lastName}`
+      : `${values.firstname} ${values.lastname}`;
 
-  console.log("Sending candidate data:", JSON.parse(raw));
+    console.log("Resolved values:", {
+      email,
+      lastName,
+      firstName,
+      phone,
+      name,
+      speciality,
+      totalExperience
+    });
 
-  try {
-    const response = await fetch(
-      "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-          "X-Tenant": tenant,
-        },
-        body: raw,
-      }
-    );
-
-    // First check if response is ok
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("API Error Response:", errorText);
-      
-      // Try to parse error message if it's JSON
-      let errorMessage = `HTTP error! status: ${response.status}`;
-      try {
-        const errorJson = JSON.parse(errorText);
-        errorMessage = errorJson.message || errorMessage;
-      } catch (e) {
-        // If not JSON, use the text as is
-        errorMessage = errorText || errorMessage;
-      }
-      
-      throw new Error(errorMessage);
+    // Validate required fields
+    if (!email || !name.trim() || !phone) {
+      swal({
+        title: "Missing Information!",
+        text: "Please fill in all required fields: Email, Name, and Phone are required.",
+        icon: "error"
+      });
+      return;
     }
 
-    // Then try to parse as JSON
-    const result = await response.json();
-    console.log("API Success Response:", result);
-
-    swal({
-      title: "Success!",
-      text: "Candidate created successfully.",
-      icon: "success",
-      timer: 2000,
-      buttons: false
-    }).then(() => {
-      window.location.reload();
+    const raw = JSON.stringify({
+      active: true,
+      source: "Checklist",
+      additionalProperties: {},
+      certifications: [],
+      city: "",
+      companiesWorkedAt: [],
+      contactTime: "",
+      currentCTC: "",
+      dateIssued: new Date().toISOString(),
+      dateOfBirth: values.dob ? new Date(values.dob).toISOString().split('T')[0] : "", // Just date part
+      date_added: new Date().toISOString(),
+      degree: [],
+      designation: [
+        {
+          additionalProperties: {},
+          country: "",
+          countryCode: "",
+          postalCode: "",
+          state: "",
+        },
+      ],
+      desiredShifts: "",
+      eligibleToWorkUS: true,
+      email: email,
+      expirationDate: "",
+      experience: [],
+      fileHandle: {
+        "@microsoft.graph.downloadUrl": "",
+        "@odata.context": "",
+        cTag: "",
+        createdBy: {
+          application: {
+            displayName: "",
+            id: "",
+          },
+          user: {
+            active: true,
+            dateCreated: new Date().toISOString(),
+            dateModified: new Date().toISOString(),
+            email: "",
+            firstName: "",
+            fullName: "",
+            id: "",
+            isZoomUser: false,
+            lastName: "",
+            mobileNumber: "",
+            password: "",
+            profilePicture: "",
+            roles: [],
+            userType: "EXTERNAL",
+          },
+        },
+        createdDateTime: new Date().toISOString(),
+        eTag: "",
+        file: {
+          hashes: {
+            quickXorHash: "",
+          },
+          mimeType: "",
+        },
+        fileSystemInfo: {
+          createdDateTime: new Date().toISOString(),
+          lastModifiedDateTime: new Date().toISOString(),
+        },
+        id: "",
+        lastModifiedBy: {
+          application: {
+            displayName: "",
+            id: "",
+          },
+          user: {
+            active: true,
+            dateCreated: new Date().toISOString(),
+            dateModified: new Date().toISOString(),
+            email: "",
+            firstName: "",
+            fullName: "",
+            id: "",
+            isZoomUser: false,
+            lastName: "",
+            mobileNumber: "",
+            password: "",
+            profilePicture: "",
+            roles: [],
+            userType: "EXTERNAL",
+          },
+        },
+        lastModifiedDateTime: new Date().toISOString(),
+        name: "",
+        parentReference: {
+          driveId: "",
+          driveType: "",
+          id: "",
+          name: "",
+          path: "",
+          siteId: "",
+        },
+        shared: {
+          scope: "",
+        },
+        size: 0,
+        webUrl: "",
+      },
+      fullText: "",
+      gender: "",
+      hasLicenseInvestigated: false,
+      investigationDetails: "",
+      issuingState: "",
+      last_updated: new Date().toISOString(),
+      lastName: lastName,
+      license: [],
+      licenseNumber: "",
+      licensedStates: "",
+      licenses: [],
+      municipality: "",
+      name: name,
+      otherPhone: otherPhone,
+      phone: phone,
+      preferredCities: states && states.length > 0 ? states : [],
+      preferredDestinations: "",
+      primarySpeciality: speciality || "",
+      profession: "",
+      regions: "",
+      skills: [],
+      state: states && states.length > 0 ? states[0] : "",
+      totalExp: totalExperience || "",
+      travelStatus: "",
+      university: [],
+      workAuthorization: "",
+      zip: "",
     });
 
-  } catch (error) {
-    console.error("Network Error:", error);
-    swal({
-      title: "API Error",
-      text: error.message,
-      icon: "error"
-    });
-  }
-};
+    console.log("Sending candidate data:", JSON.parse(raw));
+
+    try {
+      const response = await fetch(
+        "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+            "X-Tenant": tenant,
+          },
+          body: raw,
+        }
+      );
+
+      // First check if response is ok
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API Error Response:", errorText);
+
+        // Try to parse error message if it's JSON
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorMessage;
+        } catch (e) {
+          // If not JSON, use the text as is
+          errorMessage = errorText || errorMessage;
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      // Then try to parse as JSON
+      const result = await response.json();
+      console.log("API Success Response:", result);
+
+      swal({
+        title: "Success!",
+        text: "Candidate created successfully.",
+        icon: "success",
+        timer: 2000,
+        buttons: false
+      }).then(() => {
+        window.location.reload();
+      });
+
+    } catch (error) {
+      console.error("Network Error:", error);
+      swal({
+        title: "API Error",
+        text: error.message,
+        icon: "error"
+      });
+    }
+  };
 
   const createCandidatebyFirstReference = async (
     reference,
@@ -981,8 +983,8 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     // createCandidate(values, token);
     e.preventDefault();
     setFormValues(values);
-  
-  console.log("Submitting data:", values, candidateData);
+
+    console.log("Submitting data:", values, candidateData);
     console.log("values", values, candidateData);
     createCandidate(candidateData, values, token, totalExperience);
     createCandidatebyFirstReference(references, candidateData, values, token, totalExperience, speciality);
@@ -1639,6 +1641,50 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                           name={"phoneno"}
                           errors={formik.errors.phoneno}
                           touched={formik.touched.phoneno}
+                        />
+                        <InputField
+                          label={"Alternate number"}
+                          value={values.otherphone}
+                          type={"tel"}
+                          placeholder={"Enter Phone number"}
+                          onChange={(e) => {
+                            const input = e.target.value;
+
+                            // 1. Remove all non-digit characters
+                            const digits = input.replace(/\D/g, "");
+
+                            // 2. Ensure starts with +1
+                            let formatted = "+1";
+                            if (digits.startsWith("1") && digits.length > 1) {
+                              formatted += digits.substring(1, 11); // Take next 10 digits
+                            } else if (!digits.startsWith("1")) {
+                              formatted += digits.substring(0, 10); // Take first 10 digits
+                            }
+
+                            // 3. Add formatting
+                            if (formatted.length > 2) {
+                              formatted = formatted.replace(
+                                /^(\+1)(\d{0,3})(\d{0,3})(\d{0,4})/,
+                                (_, p1, p2, p3, p4) =>
+                                  [
+                                    p1,
+                                    p2 && ` (${p2}`,
+                                    p3 && `) ${p3}`,
+                                    p4 && `-${p4}`,
+                                  ]
+                                    .filter(Boolean)
+                                    .join("")
+                              );
+                            }
+
+                            formik.setFieldValue("otherphone", formatted);
+                          }}
+                          onBlur={handleBlur}
+                          // id={"validationCustom03"}
+                          required={true}
+                          name={"otherphone"}
+                          errors={formik.errors.otherphone}
+                          touched={formik.touched.otherphone}
                         />
 
                         <InputField
