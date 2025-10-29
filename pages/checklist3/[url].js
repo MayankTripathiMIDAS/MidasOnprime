@@ -1681,7 +1681,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                           }}
                           onBlur={handleBlur}
                           // id={"validationCustom03"}
-                          required={true}
+                          required={false}
                           name={"otherphone"}
                           errors={formik.errors.otherphone}
                           touched={formik.touched.otherphone}

@@ -13,6 +13,7 @@ const InputField = ({
   disabled,
   style,
   maxLength,
+  required,
   errors,
   touched,
 }) => {
@@ -30,7 +31,7 @@ const InputField = ({
         onChange={onChange}
         onBlur={onBlur}
         name={name}
-        required
+        required={required}
         onClick={onClick}
         disabled={disabled}
         style={style}
