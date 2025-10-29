@@ -134,10 +134,9 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
         ),
       // address: Yup.string().required("Required"),
     }),
-    onSubmit: (values, e) => {
-      submitData(values, e);
-      createCandidate();
-    },
+    onSubmit: (values) => {
+  submitData(null, values);
+},
   });
 
   var userEmail = mail;
@@ -163,11 +162,11 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       },
       mode: "cors" // Explicitly enable CORS
     };
-  
+
     const url = mi
       ? `https://tenantapi.theartemis.ai/api/email/getLinksById/${mi}`
       : `https://tenantapi.theartemis.ai/api/email/getAllLinks/${decryptedMail}`;
-  
+
     fetch(url, options)
       .then((response) => {
         if (!response.ok) {
@@ -261,30 +260,26 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
 
       tableHTML += `<th class="table-data" colspan="4" scope="row">${ite.name}</th>`;
 
-      tableHTML += `<td class="table-data">${
-        ite.value1 === "checked"
+      tableHTML += `<td class="table-data">${ite.value1 === "checked"
           ? `<div style = "height: 15px; width: 15px; background: #0f875b;  border-radius: 50px; margin-left: 30px" class ="circle-box"></div>`
           : `<input class="form-check-input" type="radio" name=${ite.name}
                         required disabled > `
-      } </td>`;
-      tableHTML += `<td class="table-data">${
-        ite.value2 === "checked"
+        } </td>`;
+      tableHTML += `<td class="table-data">${ite.value2 === "checked"
           ? `<div style = "height: 15px; width: 15px; background: #0f875b;  border-radius: 50px; margin-left: 30px" class ="circle-box"></div>`
           : `<input class="form-check-input" type="radio" name=${ite.name}
                         required id="flexRadioDefault" disabled >`
-      } </td>`;
-      tableHTML += `<td class="table-data">${
-        ite.value3 === "checked"
+        } </td>`;
+      tableHTML += `<td class="table-data">${ite.value3 === "checked"
           ? `<div style = "height: 15px; width: 15px; background: #0f875b;  border-radius: 50px; margin-left: 30px" class ="circle-box"></div>`
           : `<input class="form-check-input" type="radio" name=${ite.name}
                         required id="flexRadioDefault" disabled >`
-      } </td>`;
-      tableHTML += `<td class="table-data">${
-        ite.value4 === "checked"
+        } </td>`;
+      tableHTML += `<td class="table-data">${ite.value4 === "checked"
           ? `<div style = "height: 15px; width: 15px; background: #0f875b;  border-radius: 50px; margin-left: 30px" class ="circle-box"></div>`
           : `<input class="form-check-input" type="radio" name=${ite.name}
                         required id="flexRadioDefault" disabled >`
-      } </td>`;
+        } </td>`;
       tableHTML += "</tbody>";
     });
 
@@ -318,127 +313,237 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
   const reference = references;
 
   const createCandidate = async (candidate, values, auth, experience) => {
-    const candidateSpeciality = speciality;
-    const checkliststate = states;
-    const raw = JSON.stringify({
-  active: true,
-  source: "Checklist",
-  additionalProperties: {},
-  certifications: [],
-  city: "",
-  companiesWorkedAt: [{}],
-  contactTime: "",
-  currentCTC: "",
-  dateIssued: new Date().toISOString(),
-  dateOfBirth: "",
-  date_added: new Date().toISOString(),
-  degree: [],
-  designation: [
-    {
-      additionalProperties: {},
-      country: "",
-      countryCode: "",
-      postalCode: "",
-      state: "",
+  // Format the phone number to remove formatting
+  const formatPhoneForAPI = (phone) => {
+    if (!phone) return "";
+    // Remove all non-digit characters except +
+    const cleaned = phone.replace(/\D/g, "");
+    return cleaned.startsWith("1") ? `+${cleaned}` : `+1${cleaned}`;
+  };
+
+  // Determine which data source to use
+  const useCandidateData = candidateData && candidateData.jobTitle && candidateData.jobTitle !== "";
+  
+  console.log("Data source check:", {
+    useCandidateData,
+    candidateData: candidateData,
+    jobTitle: candidateData?.jobTitle,
+    formValues: values
+  });
+
+  const email = useCandidateData ? candidateData.email : values.email;
+  const lastName = useCandidateData ? candidateData.lastName : values.lastname;
+  const firstName = useCandidateData ? candidateData.firstName : values.firstname;
+  const phone = useCandidateData ? candidateData.phone : values.phoneno;
+  const name = useCandidateData 
+    ? `${candidateData.firstName} ${candidateData.lastName}`
+    : `${values.firstname} ${values.lastname}`;
+
+  console.log("Resolved values:", {
+    email,
+    lastName, 
+    firstName,
+    phone,
+    name,
+    speciality,
+    totalExperience
+  });
+
+  // Validate required fields
+  if (!email || !name.trim() || !phone) {
+    swal({
+      title: "Missing Information!",
+      text: "Please fill in all required fields: Email, Name, and Phone are required.",
+      icon: "error"
+    });
+    return;
+  }
+
+  const raw = JSON.stringify({
+    active: true,
+    source: "Checklist",
+    additionalProperties: {},
+    certifications: [],
+    city: "",
+    companiesWorkedAt: [],
+    contactTime: "",
+    currentCTC: "",
+    dateIssued: new Date().toISOString(),
+    dateOfBirth: values.dob ? new Date(values.dob).toISOString().split('T')[0] : "", // Just date part
+    date_added: new Date().toISOString(),
+    degree: [],
+    designation: [
+      {
+        additionalProperties: {},
+        country: "",
+        countryCode: "",
+        postalCode: "",
+        state: "",
+      },
+    ],
+    desiredShifts: "",
+    eligibleToWorkUS: true,
+    email: email,
+    expirationDate: "",
+    experience: [],
+    fileHandle: {
+      "@microsoft.graph.downloadUrl": "",
+      "@odata.context": "",
+      cTag: "",
+      createdBy: {
+        application: {
+          displayName: "",
+          id: "",
+        },
+        user: {
+          active: true,
+          dateCreated: new Date().toISOString(),
+          dateModified: new Date().toISOString(),
+          email: "",
+          firstName: "",
+          fullName: "",
+          id: "",
+          isZoomUser: false,
+          lastName: "",
+          mobileNumber: "",
+          password: "",
+          profilePicture: "",
+          roles: [],
+          userType: "EXTERNAL",
+        },
+      },
+      createdDateTime: new Date().toISOString(),
+      eTag: "",
+      file: {
+        hashes: {
+          quickXorHash: "",
+        },
+        mimeType: "",
+      },
+      fileSystemInfo: {
+        createdDateTime: new Date().toISOString(),
+        lastModifiedDateTime: new Date().toISOString(),
+      },
+      id: "",
+      lastModifiedBy: {
+        application: {
+          displayName: "",
+          id: "",
+        },
+        user: {
+          active: true,
+          dateCreated: new Date().toISOString(),
+          dateModified: new Date().toISOString(),
+          email: "",
+          firstName: "",
+          fullName: "",
+          id: "",
+          isZoomUser: false,
+          lastName: "",
+          mobileNumber: "",
+          password: "",
+          profilePicture: "",
+          roles: [],
+          userType: "EXTERNAL",
+        },
+      },
+      lastModifiedDateTime: new Date().toISOString(),
+      name: "",
+      parentReference: {
+        driveId: "",
+        driveType: "",
+        id: "",
+        name: "",
+        path: "",
+        siteId: "",
+      },
+      shared: {
+        scope: "",
+      },
+      size: 0,
+      webUrl: "",
     },
-  ],
-  desiredShifts: "",
-  eligibleToWorkUS: true,
+    fullText: "",
+    gender: "",
+    hasLicenseInvestigated: false,
+    investigationDetails: "",
+    issuingState: "",
+    last_updated: new Date().toISOString(),
+    lastName: lastName,
+    license: [],
+    licenseNumber: "",
+    licensedStates: "",
+    licenses: [],
+    municipality: "",
+    name: name,
+    otherPhone: "",
+    phone: formatPhoneForAPI(phone),
+    preferredCities: states && states.length > 0 ? states : [],
+    preferredDestinations: "",
+    primarySpeciality: speciality || "",
+    profession: "",
+    regions: "",
+    skills: [],
+    state: states && states.length > 0 ? states[0] : "",
+    totalExp: totalExperience || "",
+    travelStatus: "",
+    university: [],
+    workAuthorization: "",
+    zip: "",
+  });
 
-  email:
-    candidateData.jobTitle === ""
-      ? formik.values.email
-      : candidateData.email,
+  console.log("Sending candidate data:", JSON.parse(raw));
 
-  expirationDate: "",
-  experience: [],
-  fileHandle: {
-    "@microsoft.graph.downloadUrl": "string",
-    "@odata.context": "string",
-    cTag: "string",
-  },
-  fullText: "",
-  gender: "",
-  hasLicenseInvestigated: true,
-  investigationDetails: "",
-  issuingState: "",
-  last_updated: new Date().toISOString(),
+  try {
+    const response = await fetch(
+      "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+          "X-Tenant": tenant,
+        },
+        body: raw,
+      }
+    );
 
-  lastName:
-    candidateData.jobTitle === ""
-      ? formik.values.lastname
-      : candidateData.lastName,
-
-  license: [""],
-  licenseNumber: "",
-  licensedStates: "",
-  licenses: [],
-  municipality: "",
-  name:
-    candidateData.jobTitle === ""
-      ? `${formik.values.firstname} ${formik.values.lastname}`
-      : `${candidateData.firstName} ${candidateData.lastName}`,
-
-  otherPhone: "",
-  phone:
-    candidateData.jobTitle === ""
-      ? formik.values.phoneno
-      : candidateData.phone,
-
-  preferredCities:
-    candidateData.jobTitle === "" ? checkliststate : [""],
-
-  preferredDestinations: "",
-  primarySpeciality: candidateSpeciality,
-  profession: "",
-  regions: "",
-  skills: [""],
-  state: checkliststate,
-  totalExp: totalExperience,
-  travelStatus: "",
-  university: [],
-  workAuthorization: "",
-  zip: "",
-});
-
-
-    try {
-      const response = await fetch(
-        "https://tenanthrmsapi.theartemis.ai/api/v1/candidateMidas/createCandidate",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            "X-Tenant": tenant,
-          },
-          body: raw,
-        }
-      );
-
-      const result = await response.json();
-
-    if (response.ok) {
-      swal({
-        title: "Success!",
-        text: "Your data has been saved successfully.",
-        icon: "success",
-        timer: 2000,
-        buttons: false
-      }).then(() => {
-        window.location.reload();
-      });
-    } else {
-      swal({
-        title: "Error!",
-        text: "Failed to save data.",
-        icon: "error"
-      });
+    // First check if response is ok
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("API Error Response:", errorText);
+      
+      // Try to parse error message if it's JSON
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorMessage;
+      } catch (e) {
+        // If not JSON, use the text as is
+        errorMessage = errorText || errorMessage;
+      }
+      
+      throw new Error(errorMessage);
     }
 
-  } catch (error) {
+    // Then try to parse as JSON
+    const result = await response.json();
+    console.log("API Success Response:", result);
+
     swal({
-      title: "Network Error",
+      title: "Success!",
+      text: "Candidate created successfully.",
+      icon: "success",
+      timer: 2000,
+      buttons: false
+    }).then(() => {
+      window.location.reload();
+    });
+
+  } catch (error) {
+    console.error("Network Error:", error);
+    swal({
+      title: "API Error",
       text: error.message,
       icon: "error"
     });
@@ -454,146 +559,146 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     candidateSpeciality
   ) => {
     const raw = JSON.stringify({
-  active: true,
-  additionalProperties: {},
-  certifications: [],
-  city: "",
-  companiesWorkedAt: [{}],
-  date_added: new Date().toISOString(),
-  contactTime: "",
-  currentCTC: "",
-  dateIssued: new Date().toISOString(),
-  dateOfBirth: "",
-  degree: [],
-  designation: [
-    {
+      active: true,
       additionalProperties: {},
-      country: "",
-      countryCode: "",
-      postalCode: "",
+      certifications: [],
+      city: "",
+      companiesWorkedAt: [{}],
+      date_added: new Date().toISOString(),
+      contactTime: "",
+      currentCTC: "",
+      dateIssued: new Date().toISOString(),
+      dateOfBirth: "",
+      degree: [],
+      designation: [
+        {
+          additionalProperties: {},
+          country: "",
+          countryCode: "",
+          postalCode: "",
+          state: "",
+        },
+      ],
+      desiredShifts: "",
+      eligibleToWorkUS: true,
+      email: reference[0].email,
+      expirationDate: "",
+      experience: [],
+      fileHandle: {
+        "@microsoft.graph.downloadUrl": "string",
+        "@odata.context": "string",
+        createdBy: {
+          application: {
+            displayName: "string",
+            id: "string",
+          },
+          user: {
+            active: true,
+            dateCreated: new Date().toISOString(),
+            dateModified: new Date().toISOString(),
+            email: "string",
+            firstName: "string",
+            fullName: "string",
+            id: "string",
+            isZoomUser: true,
+            lastName: "string",
+            mobileNumber: "string",
+            password: "string",
+            profilePicture: "string",
+            roles: [
+              {
+                id: "string",
+                role: "string",
+              },
+            ],
+            userType: "EXTERNAL",
+          },
+        },
+        createdDateTime: "string",
+        cTag: "string",
+        eTag: "string",
+        file: {
+          hashes: {
+            quickXorHash: "string",
+          },
+          mimeType: "string",
+        },
+        fileSystemInfo: {
+          createdDateTime: "string",
+          lastModifiedDateTime: "string",
+        },
+        id: "string",
+        lastModifiedBy: {
+          application: {
+            displayName: "string",
+            id: "string",
+          },
+          user: {
+            active: true,
+            dateCreated: new Date().toISOString(),
+            dateModified: new Date().toISOString(),
+            email: "string",
+            firstName: "string",
+            fullName: "string",
+            id: "string",
+            isZoomUser: true,
+            lastName: "string",
+            mobileNumber: "string",
+            password: "string",
+            profilePicture: "string",
+            roles: [
+              {
+                id: "string",
+                role: "string",
+              },
+            ],
+            userType: "EXTERNAL",
+          },
+        },
+        lastModifiedDateTime: "string",
+        name: "string",
+        parentReference: {
+          driveId: "string",
+          driveType: "string",
+          id: "string",
+          name: "string",
+          path: "string",
+          siteId: "string",
+        },
+        shared: {
+          scope: "string",
+        },
+        size: 0,
+        webUrl: "string",
+      },
+      fullText: "",
+      gender: "",
+      hasLicenseInvestigated: true,
+      investigationDetails: "",
+      issuingState: "",
+      last_updated: new Date().toISOString(),
+      license: [""],
+      licenseNumber: "",
+      licensedStates: "",
+      licenses: [{}],
+      municipality: "",
+      name: reference[0].name,
+      otherPhone: "",
+      phone: reference[0].phoneno,
+      preferredCities: [""],
+      preferredDestinations: "",
+      primarySpeciality: candidateSpeciality,
+      profession: "",
+      regions: "",
+      skills: [""],
+      source: "Checklist",
       state: "",
-    },
-  ],
-  desiredShifts: "",
-  eligibleToWorkUS: true,
-  email: reference[0].email,
-  expirationDate: "",
-  experience: [],
-  fileHandle: {
-    "@microsoft.graph.downloadUrl": "string",
-    "@odata.context": "string",
-    createdBy: {
-      application: {
-        displayName: "string",
-        id: "string",
-      },
-      user: {
-        active: true,
-        dateCreated: new Date().toISOString(),
-        dateModified: new Date().toISOString(),
-        email: "string",
-        firstName: "string",
-        fullName: "string",
-        id: "string",
-        isZoomUser: true,
-        lastName: "string",
-        mobileNumber: "string",
-        password: "string",
-        profilePicture: "string",
-        roles: [
-          {
-            id: "string",
-            role: "string",
-          },
-        ],
-        userType: "EXTERNAL",
-      },
-    },
-    createdDateTime: "string",
-    cTag: "string",
-    eTag: "string",
-    file: {
-      hashes: {
-        quickXorHash: "string",
-      },
-      mimeType: "string",
-    },
-    fileSystemInfo: {
-      createdDateTime: "string",
-      lastModifiedDateTime: "string",
-    },
-    id: "string",
-    lastModifiedBy: {
-      application: {
-        displayName: "string",
-        id: "string",
-      },
-      user: {
-        active: true,
-        dateCreated: new Date().toISOString(),
-        dateModified: new Date().toISOString(),
-        email: "string",
-        firstName: "string",
-        fullName: "string",
-        id: "string",
-        isZoomUser: true,
-        lastName: "string",
-        mobileNumber: "string",
-        password: "string",
-        profilePicture: "string",
-        roles: [
-          {
-            id: "string",
-            role: "string",
-          },
-        ],
-        userType: "EXTERNAL",
-      },
-    },
-    lastModifiedDateTime: "string",
-    name: "string",
-    parentReference: {
-      driveId: "string",
-      driveType: "string",
-      id: "string",
-      name: "string",
-      path: "string",
-      siteId: "string",
-    },
-    shared: {
-      scope: "string",
-    },
-    size: 0,
-    webUrl: "string",
-  },
-  fullText: "",
-  gender: "",
-  hasLicenseInvestigated: true,
-  investigationDetails: "",
-  issuingState: "",
-  last_updated: new Date().toISOString(),
-  license: [""],
-  licenseNumber: "",
-  licensedStates: "",
-  licenses: [{}],
-  municipality: "",
-  name: reference[0].name,
-  otherPhone: "",
-  phone: reference[0].phoneno,
-  preferredCities: [""],
-  preferredDestinations: "",
-  primarySpeciality: candidateSpeciality,
-  profession: "",
-  regions: "",
-  skills: [""],
-  source: "Checklist",
-  state: "",
-  totalExp: totalExperience,
-  travelStatus: "",
-  university: [{}],
-  workAuthorization: "",
-  zip: "",
-});
+      totalExp: totalExperience,
+      travelStatus: "",
+      university: [{}],
+      workAuthorization: "",
+      zip: "",
+    });
 
 
     if (
@@ -617,32 +722,32 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
 
         const result = await response.json();
 
-    if (response.ok) {
-      swal({
-        title: "Success!",
-        text: "Your data has been saved successfully.",
-        icon: "success",
-        timer: 2000,
-        buttons: false
-      }).then(() => {
-        window.location.reload();
-      });
-    } else {
-      swal({
-        title: "Error!",
-        text: "Failed to save data.",
-        icon: "error"
-      });
-    }
+        if (response.ok) {
+          swal({
+            title: "Success!",
+            text: "Your data has been saved successfully.",
+            icon: "success",
+            timer: 2000,
+            buttons: false
+          }).then(() => {
+            window.location.reload();
+          });
+        } else {
+          swal({
+            title: "Error!",
+            text: "Failed to save data.",
+            icon: "error"
+          });
+        }
 
-  } catch (error) {
-    swal({
-      title: "Network Error",
-      text: error.message,
-      icon: "error"
-    });
-  }
-}
+      } catch (error) {
+        swal({
+          title: "Network Error",
+          text: error.message,
+          icon: "error"
+        });
+      }
+    }
   };
 
   const createCandidatebySecondReference = async (
@@ -654,146 +759,146 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     candidateSpeciality
   ) => {
     const raw = JSON.stringify({
-  active: true,
-  additionalProperties: {},
-  certifications: [],
-  city: "",
-  companiesWorkedAt: [{}],
-  date_added: new Date().toISOString(),
-  contactTime: "",
-  currentCTC: "",
-  dateIssued: new Date().toISOString(),
-  dateOfBirth: "",
-  degree: [],
-  designation: [
-    {
+      active: true,
       additionalProperties: {},
-      country: "",
-      countryCode: "",
-      postalCode: "",
+      certifications: [],
+      city: "",
+      companiesWorkedAt: [{}],
+      date_added: new Date().toISOString(),
+      contactTime: "",
+      currentCTC: "",
+      dateIssued: new Date().toISOString(),
+      dateOfBirth: "",
+      degree: [],
+      designation: [
+        {
+          additionalProperties: {},
+          country: "",
+          countryCode: "",
+          postalCode: "",
+          state: "",
+        },
+      ],
+      desiredShifts: "",
+      eligibleToWorkUS: true,
+      email: reference[1].email,
+      expirationDate: "",
+      experience: [],
+      fileHandle: {
+        "@microsoft.graph.downloadUrl": "string",
+        "@odata.context": "string",
+        createdBy: {
+          application: {
+            displayName: "string",
+            id: "string",
+          },
+          user: {
+            active: true,
+            dateCreated: new Date().toISOString(),
+            dateModified: new Date().toISOString(),
+            email: "string",
+            firstName: "string",
+            fullName: "string",
+            id: "string",
+            isZoomUser: true,
+            lastName: "string",
+            mobileNumber: "string",
+            password: "string",
+            profilePicture: "string",
+            roles: [
+              {
+                id: "string",
+                role: "string",
+              },
+            ],
+            userType: "EXTERNAL",
+          },
+        },
+        createdDateTime: "string",
+        cTag: "string",
+        eTag: "string",
+        file: {
+          hashes: {
+            quickXorHash: "string",
+          },
+          mimeType: "string",
+        },
+        fileSystemInfo: {
+          createdDateTime: "string",
+          lastModifiedDateTime: "string",
+        },
+        id: "string",
+        lastModifiedBy: {
+          application: {
+            displayName: "string",
+            id: "string",
+          },
+          user: {
+            active: true,
+            dateCreated: new Date().toISOString(),
+            dateModified: new Date().toISOString(),
+            email: "string",
+            firstName: "string",
+            fullName: "string",
+            id: "string",
+            isZoomUser: true,
+            lastName: "string",
+            mobileNumber: "string",
+            password: "string",
+            profilePicture: "string",
+            roles: [
+              {
+                id: "string",
+                role: "string",
+              },
+            ],
+            userType: "EXTERNAL",
+          },
+        },
+        lastModifiedDateTime: "string",
+        name: "string",
+        parentReference: {
+          driveId: "string",
+          driveType: "string",
+          id: "string",
+          name: "string",
+          path: "string",
+          siteId: "string",
+        },
+        shared: {
+          scope: "string",
+        },
+        size: 0,
+        webUrl: "string",
+      },
+      fullText: "",
+      gender: "",
+      hasLicenseInvestigated: true,
+      investigationDetails: "",
+      issuingState: "",
+      last_updated: new Date().toISOString(),
+      license: [""],
+      licenseNumber: "",
+      licensedStates: "",
+      licenses: [{}],
+      municipality: "",
+      name: reference[1].name,
+      otherPhone: "",
+      phone: reference[1].phoneno,
+      preferredCities: [""],
+      preferredDestinations: "",
+      primarySpeciality: candidateSpeciality,
+      profession: "",
+      regions: "",
+      skills: [""],
+      source: "Checklist",
       state: "",
-    },
-  ],
-  desiredShifts: "",
-  eligibleToWorkUS: true,
-  email: reference[1].email,
-  expirationDate: "",
-  experience: [],
-  fileHandle: {
-    "@microsoft.graph.downloadUrl": "string",
-    "@odata.context": "string",
-    createdBy: {
-      application: {
-        displayName: "string",
-        id: "string",
-      },
-      user: {
-        active: true,
-        dateCreated: new Date().toISOString(),
-        dateModified: new Date().toISOString(),
-        email: "string",
-        firstName: "string",
-        fullName: "string",
-        id: "string",
-        isZoomUser: true,
-        lastName: "string",
-        mobileNumber: "string",
-        password: "string",
-        profilePicture: "string",
-        roles: [
-          {
-            id: "string",
-            role: "string",
-          },
-        ],
-        userType: "EXTERNAL",
-      },
-    },
-    createdDateTime: "string",
-    cTag: "string",
-    eTag: "string",
-    file: {
-      hashes: {
-        quickXorHash: "string",
-      },
-      mimeType: "string",
-    },
-    fileSystemInfo: {
-      createdDateTime: "string",
-      lastModifiedDateTime: "string",
-    },
-    id: "string",
-    lastModifiedBy: {
-      application: {
-        displayName: "string",
-        id: "string",
-      },
-      user: {
-        active: true,
-        dateCreated: new Date().toISOString(),
-        dateModified: new Date().toISOString(),
-        email: "string",
-        firstName: "string",
-        fullName: "string",
-        id: "string",
-        isZoomUser: true,
-        lastName: "string",
-        mobileNumber: "string",
-        password: "string",
-        profilePicture: "string",
-        roles: [
-          {
-            id: "string",
-            role: "string",
-          },
-        ],
-        userType: "EXTERNAL",
-      },
-    },
-    lastModifiedDateTime: "string",
-    name: "string",
-    parentReference: {
-      driveId: "string",
-      driveType: "string",
-      id: "string",
-      name: "string",
-      path: "string",
-      siteId: "string",
-    },
-    shared: {
-      scope: "string",
-    },
-    size: 0,
-    webUrl: "string",
-  },
-  fullText: "",
-  gender: "",
-  hasLicenseInvestigated: true,
-  investigationDetails: "",
-  issuingState: "",
-  last_updated: new Date().toISOString(),
-  license: [""],
-  licenseNumber: "",
-  licensedStates: "",
-  licenses: [{}],
-  municipality: "",
-  name: reference[1].name,
-  otherPhone: "",
-  phone: reference[1].phoneno,
-  preferredCities: [""],
-  preferredDestinations: "",
-  primarySpeciality: candidateSpeciality,
-  profession: "",
-  regions: "",
-  skills: [""],
-  source: "Checklist",
-  state: "",
-  totalExp: totalExperience,
-  travelStatus: "",
-  university: [{}],
-  workAuthorization: "",
-  zip: "",
-});
+      totalExp: totalExperience,
+      travelStatus: "",
+      university: [{}],
+      workAuthorization: "",
+      zip: "",
+    });
 
 
     if (
@@ -818,32 +923,32 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
 
         const result = await response.json();
 
-    if (response.ok) {
-      swal({
-        title: "Success!",
-        text: "Your data has been saved successfully.",
-        icon: "success",
-        timer: 2000,
-        buttons: false
-      }).then(() => {
-        window.location.reload();
-      });
-    } else {
-      swal({
-        title: "Error!",
-        text: "Failed to save data.",
-        icon: "error"
-      });
-    }
+        if (response.ok) {
+          swal({
+            title: "Success!",
+            text: "Your data has been saved successfully.",
+            icon: "success",
+            timer: 2000,
+            buttons: false
+          }).then(() => {
+            window.location.reload();
+          });
+        } else {
+          swal({
+            title: "Error!",
+            text: "Failed to save data.",
+            icon: "error"
+          });
+        }
 
-  } catch (error) {
-    swal({
-      title: "Network Error",
-      text: error.message,
-      icon: "error"
-    });
-  }
-}
+      } catch (error) {
+        swal({
+          title: "Network Error",
+          text: error.message,
+          icon: "error"
+        });
+      }
+    }
   };
 
   function formatToUSPhoneNumber(phone) {
@@ -872,12 +977,16 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
   }
 
   const submitData = (e, values, candidateData, token) => {
+    // console.log("values", values, candidateData);
+    // createCandidate(values, token);
+    e.preventDefault();
+    setFormValues(values);
+  
+  console.log("Submitting data:", values, candidateData);
     console.log("values", values, candidateData);
-    createCandidate(values, token);
-    console.log("values", values, candidateData);
-    createCandidate(values, token);
-    createCandidatebyFirstReference(references, token);
-    createCandidatebySecondReference(references, token);
+    createCandidate(candidateData, values, token, totalExperience);
+    createCandidatebyFirstReference(references, candidateData, values, token, totalExperience, speciality);
+    createCandidatebySecondReference(references, candidateData, values, token, totalExperience, speciality);
     const dateofbith = moment(values.dob).format("MM/DD/YYYY");
     // console.log(values.dob);
     const inputDate = JSON.stringify(dateofbith);
@@ -886,9 +995,9 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       data === undefined || data.length === 0
         ? "WAIT"
         : data.list.map((item, index) => {
-            const { items, title } = item;
-            return { items, title };
-          });
+          const { items, title } = item;
+          return { items, title };
+        });
 
     const Html = `<!DOCTYPE html>
 <html>
@@ -938,27 +1047,23 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                 <div class="form-group row mb-3 d-flex align-items-center">
                   <div class="col-md-4">
                     <label class="m-2 text-dark">First Name</label>
-                    <span class="form-control" style="background-color: #e9ecef;">${
-                      values.firstname
-                    }</span>
+                    <span class="form-control" style="background-color: #e9ecef;">${values.firstname
+      }</span>
                   </div>
                   <div class="col-md-4">
                     <label class="m-2 text-dark">Last Name</label>
-                    <span class="form-control" style="background-color: #e9ecef;">${
-                      values.lastname
-                    }</span>
+                    <span class="form-control" style="background-color: #e9ecef;">${values.lastname
+      }</span>
                   </div>
                   <div class="col-md-4">
                     <label class="m-2 text-dark">Phone number</label>
-                    <span class="form-control" style="background-color: #e9ecef;">${
-                      values.phoneno
-                    }</span>
+                    <span class="form-control" style="background-color: #e9ecef;">${values.phoneno
+      }</span>
                   </div>
                   <div class="col-md-4">
                     <label class="m-2 text-dark">E-mail</label>
-                    <span class="form-control" style="background-color: #e9ecef; font-size: 13px;">${
-                      values.email
-                    }</span>
+                    <span class="form-control" style="background-color: #e9ecef; font-size: 13px;">${values.email
+      }</span>
                   </div>
                   <div class="col-md-4">
                     <label class="m-2 text-dark">Date of Birth</label>
@@ -973,9 +1078,8 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                   </div>
                   <div class="col-md-4">
                     <label class="m-2 text-dark">Last four SSN digit</label>
-                   <span class="form-control" style="background-color: #e9ecef;">${
-                     values.ssn
-                   }</span>
+                   <span class="form-control" style="background-color: #e9ecef;">${values.ssn
+      }</span>
                   </div>
                  
                   <div class="col-md-4">
@@ -984,45 +1088,39 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                       class="form-control"
                       required=""
                       disabled=""
-                      value=${
-                        StringDate == "Invalid date-Invalid date"
-                          ? ""
-                          : StringDate
-                      }
+                      value=${StringDate == "Invalid date-Invalid date"
+        ? ""
+        : StringDate
+      }
                     />
                   </div>
                    <div class="col-md-6">
                     <label class="m-2 text-dark">Address</label>
                    
-                     <span class="form-control" style="background-color: #e9ecef;">${
-                       values.address
-                     }</span>
+                     <span class="form-control" style="background-color: #e9ecef;">${values.address
+      }</span>
                    
                   </div>
                 </div>        
                 <div class="form-group row mb-3 d-flex align-items-center">
                   <div class="col-md-4">
                     <label class="m-2 text-dark"> Referre's Name</label>
-                     <span class="form-control" style="background-color: #e9ecef;">${
-                       references[0].name
-                     }</span>
+                     <span class="form-control" style="background-color: #e9ecef;">${references[0].name
+      }</span>
                    
                   </div>
                   <div class="col-md-4">
                     <label class="m-2 text-dark"> Referre's Phone</label>
-                     <span class="form-control" style="background-color: #e9ecef;">${
-                       references[0].phoneno
-                     }</span>
+                     <span class="form-control" style="background-color: #e9ecef;">${references[0].phoneno
+      }</span>
                   </div>
                   <div class="col-md-4">
                     <label class="m-2 text-dark">Referre's E-mail</label>
-                     <span class="form-control" style="background-color: #e9ecef; font-size: 13px;">${
-                       references[0].email
-                     }</span>
+                     <span class="form-control" style="background-color: #e9ecef; font-size: 13px;">${references[0].email
+      }</span>
                   </div>
-                    ${
-                      references[1]
-                        ? `  
+                    ${references[1]
+        ? `  
          <div class="col-md-4">
                     <label class="m-2 text-dark">Referee's Name</label>
                       <span class="form-control" style="background-color: #e9ecef;">${references[1].name}</span>
@@ -1039,8 +1137,8 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                   </div>
               
             `
-                        : ""
-                    }
+        : ""
+      }
                  
                 </div>
                 <div class="form-group row mt-3 ">
@@ -1071,13 +1169,12 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
    
 
       
-      ${
-        th === undefined || th === "Wait"
-          ? ""
-          : th.map((item, index) => {
-              const tab = renderTable(item.items, item.title);
-              return tab;
-            })
+      ${th === undefined || th === "Wait"
+        ? ""
+        : th.map((item, index) => {
+          const tab = renderTable(item.items, item.title);
+          return tab;
+        })
       }
    
       <div>
@@ -1188,27 +1285,25 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     <h6 style="font-weight: 600; color: #CB1829; margin-top: 10px;">RESPONSIBILITIES</h6>
     <div class="responsibilities">
       <ul>
-          ${
-            rtrData &&
-            rtrData.responsibilities &&
-            Array.isArray(rtrData.responsibilities)
-              ? rtrData.responsibilities
-                  .map((item) => `<li>${item}</li>`)
-                  .join("")
-              : "" // Render an empty string if rtrData is null, undefined, or responsibilities is not valid
-          }
+          ${rtrData &&
+        rtrData.responsibilities &&
+        Array.isArray(rtrData.responsibilities)
+        ? rtrData.responsibilities
+          .map((item) => `<li>${item}</li>`)
+          .join("")
+        : "" // Render an empty string if rtrData is null, undefined, or responsibilities is not valid
+      }
       </ul>
     </div>
     <h6 style="font-weight: 600; color: #CB1829;">REQUIREMENTS</h6>
     <div class="requirements">
       <ul>
-         ${
-           rtrData &&
-           rtrData.requirements &&
-           Array.isArray(rtrData.requirements)
-             ? rtrData.requirements.map((item) => `<li>${item}</li>`).join("")
-             : "" // Render an empty string if rtrData is null, undefined, or responsibilities is not valid
-         }
+         ${rtrData &&
+        rtrData.requirements &&
+        Array.isArray(rtrData.requirements)
+        ? rtrData.requirements.map((item) => `<li>${item}</li>`).join("")
+        : "" // Render an empty string if rtrData is null, undefined, or responsibilities is not valid
+      }
       </ul>
     </div>
     <div class="sign-box-rtr">
@@ -1316,12 +1411,12 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     if (name === "phoneno") {
       // 1. Remove all non-digit characters
       const digits = value.replace(/\D/g, "");
-    
+
       // 2. Make sure we only proceed if we have at least 10 digits (after trimming)
       const cleanedDigits = digits.startsWith("1") ? digits.slice(1, 11) : digits.slice(0, 10);
-    
+
       const rawPhone = `+1${cleanedDigits}`;
-    
+
       // Only format and set values if cleanedDigits is exactly 10 digits
       if (cleanedDigits.length < 10) {
         updatedReferences[index][name] = value; // keep user input
@@ -1329,17 +1424,17 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
         setReferenes(updatedReferences);
         return;
       }
-    
+
       // 3. Format display version
       let formatted = rawPhone.replace(
         /^\+1(\d{3})(\d{3})(\d{4})$/,
         (_, p1, p2, p3) => `+1 (${p1}) ${p2}-${p3}`
       );
-    
+
       updatedReferences[index][name] = formatted;
       updatedReferences[index]._rawPhone = rawPhone;
     }
-    
+
 
     // Your existing duplicate checking logic
     if (name === "name" && index !== 0) {
@@ -2885,9 +2980,9 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                                               e.target.value;
                                             ItemsVariable.value2 ===
                                               "checked" ||
-                                            ItemsVariable.value3 ===
+                                              ItemsVariable.value3 ===
                                               "checked" ||
-                                            ItemsVariable.value4 === "checked"
+                                              ItemsVariable.value4 === "checked"
                                               ? (ItemsVariable.value1 = "")
                                               : null;
                                           }}
@@ -2904,9 +2999,9 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                                               e.target.value;
                                             ItemsVariable.value1 ===
                                               "checked" ||
-                                            ItemsVariable.value3 ===
+                                              ItemsVariable.value3 ===
                                               "checked" ||
-                                            ItemsVariable.value4 === "checked"
+                                              ItemsVariable.value4 === "checked"
                                               ? (ItemsVariable.value2 = "")
                                               : null;
                                           }}
@@ -2923,9 +3018,9 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                                               e.target.value;
                                             ItemsVariable.value1 ===
                                               "checked" ||
-                                            ItemsVariable.value2 ===
+                                              ItemsVariable.value2 ===
                                               "checked" ||
-                                            ItemsVariable.value4 === "checked"
+                                              ItemsVariable.value4 === "checked"
                                               ? (ItemsVariable.value3 = "")
                                               : null;
                                           }}
@@ -2943,9 +3038,9 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                                               e.target.value;
                                             ItemsVariable.value1 ===
                                               "checked" ||
-                                            ItemsVariable.value2 ===
+                                              ItemsVariable.value2 ===
                                               "checked" ||
-                                            ItemsVariable.value3 === "checked"
+                                              ItemsVariable.value3 === "checked"
                                               ? (ItemsVariable.value4 = "")
                                               : null;
                                           }}
@@ -3136,8 +3231,8 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
 
                                                   item.value1 = e.target.value;
                                                   item.value2 === "checked" ||
-                                                  item.value3 === "checked" ||
-                                                  item.value4 === "checked"
+                                                    item.value3 === "checked" ||
+                                                    item.value4 === "checked"
                                                     ? (item.value1 = "")
                                                     : null;
                                                 }}
@@ -3157,8 +3252,8 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
 
                                                   item.value2 = e.target.value;
                                                   item.value1 === "checked" ||
-                                                  item.value3 === "checked" ||
-                                                  item.value4 === "checked"
+                                                    item.value3 === "checked" ||
+                                                    item.value4 === "checked"
                                                     ? (item.value2 = "")
                                                     : null;
                                                 }}
@@ -3177,8 +3272,8 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                                                   );
                                                   item.value3 = e.target.value;
                                                   item.value1 === "checked" ||
-                                                  item.value2 === "checked" ||
-                                                  item.value4 === "checked"
+                                                    item.value2 === "checked" ||
+                                                    item.value4 === "checked"
                                                     ? (item.value3 = "")
                                                     : null;
                                                 }}
@@ -3197,8 +3292,8 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                                                   );
                                                   item.value4 = e.target.value;
                                                   item.value1 === "checked" ||
-                                                  item.value2 === "checked" ||
-                                                  item.value3 === "checked"
+                                                    item.value2 === "checked" ||
+                                                    item.value3 === "checked"
                                                     ? (item.value4 = "")
                                                     : null;
                                                 }}

@@ -1232,7 +1232,6 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
         alert(error);
       });
   };
-
   const authToken = () => {
     const options = {
       method: "POST",
@@ -3203,8 +3202,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       {/* <div dangerouslySetInnerHTML={{ __html: html }} /> */}
     </>
   );
-}
-
+};
 export default Url;
 export async function getServerSideProps({ query }) {
   const { url, id, mail, r, mi } = query;
