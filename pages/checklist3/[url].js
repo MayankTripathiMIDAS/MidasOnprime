@@ -23,7 +23,7 @@ import NotRequiredInputField from "@/components/NotRequiredInputField";
 const Url = ({ url, id, mail, r, mi, tenant }) => {
   const router = useRouter();
   const [active, setActive] = useState(false);
-  console.log("here", active);
+  // console.log("here", active);
   const [speciality, setSpeciality] = useState("");
   const [totalExperience, setTotalExperience] = useState("");
   const [token, setToken] = useState("");
@@ -54,7 +54,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     address: "",
   });
   const [showDate, setShowDate] = useState(false);
-  const [references, setReferenes] = useState([
+  const [references, setReferences] = useState([
     {
       name: "",
       phoneno: "",
@@ -123,17 +123,31 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
         .min(4, "Enter Last 4 Digits only")
         .max(4, "Enter Last 4 Digits only"),
       email: Yup.string().email("Invalid email address").required("Required"),
-      dob: Yup.date()
+      dob: Yup.string()
         .required("Date of Birth is required")
+        .test(
+          "valid-format",
+          "Year must be exactly 4 digits (e.g., 1998)",
+          function (value) {
+            if (!value) return false;
+            const yearPart = value.split("-")[0];
+            return /^\d{4}$/.test(yearPart);
+          }
+        )
         .test(
           "not-in-future",
           "Date of Birth cannot be a future date",
           function (value) {
+            if (!value) return false;
+            const yearPart = value.split("-")[0];
+            if (!/^\d{4}$/.test(yearPart)) return false;
             const selectedDate = new Date(value);
             const currentDate = new Date();
             return selectedDate <= currentDate;
           }
         ),
+
+
       // address: Yup.string().required("Required"),
     }),
     onSubmit: (values) => {
@@ -1411,24 +1425,18 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     const updatedReferences = [...references];
 
     if (name === "phoneno") {
-      // 1. Remove all non-digit characters
       const digits = value.replace(/\D/g, "");
-
-      // 2. Make sure we only proceed if we have at least 10 digits (after trimming)
       const cleanedDigits = digits.startsWith("1") ? digits.slice(1, 11) : digits.slice(0, 10);
-
       const rawPhone = `+1${cleanedDigits}`;
 
-      // Only format and set values if cleanedDigits is exactly 10 digits
       if (cleanedDigits.length < 10) {
-        updatedReferences[index][name] = value; // keep user input
-        updatedReferences[index]._rawPhone = rawPhone; // still set raw
-        setReferenes(updatedReferences);
+        updatedReferences[index][name] = value;
+        updatedReferences[index]._rawPhone = rawPhone;
+        setReferences(updatedReferences);
         return;
       }
 
-      // 3. Format display version
-      let formatted = rawPhone.replace(
+      const formatted = rawPhone.replace(
         /^\+1(\d{3})(\d{3})(\d{4})$/,
         (_, p1, p2, p3) => `+1 (${p1}) ${p2}-${p3}`
       );
@@ -1437,22 +1445,23 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       updatedReferences[index]._rawPhone = rawPhone;
     }
 
+    // ✅ Always assign value for non-phone fields
+    if (name === "name" || name === "email") {
+      updatedReferences[index][name] = value;
+    }
 
-    // Your existing duplicate checking logic
+    // Duplicate checking logic
     if (name === "name" && index !== 0) {
       const firstReferenceName = updatedReferences[0].name;
       if (value === firstReferenceName) {
-        alert(
-          "Reference name cannot be the same as the first reference's name"
-        );
+        alert("Reference name cannot be the same as the first reference's name");
         return;
       }
     }
 
     if (name === "phoneno" && index !== 0) {
       const currentDigits = updatedReferences[index].phoneno.replace(/\D/g, "");
-      const firstDigits =
-        updatedReferences[0].phoneno?.replace(/\D/g, "") || "";
+      const firstDigits = updatedReferences[0].phoneno?.replace(/\D/g, "") || "";
       if (currentDigits === firstDigits && currentDigits.length > 1) {
         alert("Phone number cannot be the same as the first reference");
         return;
@@ -1467,8 +1476,9 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       }
     }
 
-    setReferenes(updatedReferences);
+    setReferences(updatedReferences);
   };
+
   const tableData = () => {
     // const options = { method: "GET" };
     // const options = {
@@ -1702,13 +1712,22 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                         />
 
                         <InputField
-                          label={"Date Of Birth*"}
+                          label="Date Of Birth*"
                           value={values.dob}
-                          type={"date"}
-                          id={"dob"}
-                          required={true}
-                          name={"dob"}
-                          onChange={handleChange}
+                          type="date"
+                          id="dob"
+                          required
+                          name="dob"
+                          onChange={(e) => {
+                            let val = e.target.value;
+                            const parts = val.split("-");
+                            if (parts[0]?.length > 4) {
+                              parts[0] = parts[0].slice(0, 4);
+                              val = parts.join("-");
+                              e.target.value = val;
+                            }
+                            formik.setFieldValue("dob", val);
+                          }}
                           onBlur={handleBlur}
                           errors={formik.errors.dob}
                           touched={formik.touched.dob}
