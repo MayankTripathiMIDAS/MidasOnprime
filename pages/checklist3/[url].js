@@ -33,7 +33,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
   const [rtrSign, setRtrSign] = useState("");
   const [rtrData, setRtrData] = useState("");
   const [dateofBirth, setDateOfBirth] = useState(new Date());
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [formValues, setFormValues] = useState("");
   const [data, setData] = useState([]);
   const [senderMail, setSenderMail] = useState("");
@@ -109,7 +109,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       firstname: Yup.string().required("Required"),
       lastname: Yup.string().required("Required"),
       phoneno: Yup.string()
-        .required("US phone number with +1 is required")
+        .required("Phone number is required")
         .matches(/^\+1\d{10}$/, "Please enter a 10-digit number)")
         .transform((value) => {
           // Auto-correct partial entries
@@ -169,36 +169,36 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
   const decryptedMail = decryptURL(userEmail, secretKey);
 
   const rtrDetails = () => {
-    const options = {
-      method: "GET",
-      headers: {
-        "accept": "*/*",
-        "X-Tenant": tenant,
-        "Content-Type": "application/json" // Add this
-      },
-      mode: "cors" // Explicitly enable CORS
-    };
-
-    const url = mi
-      ? `https://tenantapi.theartemis.ai/api/email/getLinksById/${mi}`
-      : `https://tenantapi.theartemis.ai/api/email/getAllLinks/${decryptedMail}`;
-
-    // fetch(url, options)
-    //   .then((response) => {
-    //     if (!response.ok) {
-    //       throw new Error(`HTTP error! Status: ${response.status}`);
-    //     }
-    //     return response.json();
-    //   })
-    //   .then((responseData) => {
-    //     setRtrData(responseData[0] || responseData);
-    //     setCandidateData(responseData[0] || responseData);
-    //   })
-    //   .catch((error) => {
-    //     console.error("Fetch error:", error);
-    //     // Handle error cases here
-    //   });
+  const options = {
+    method: "GET",
+    headers: {
+      "accept": "*/*",
+      "X-Tenant": tenant,
+      "Content-Type": "application/json"
+    },
+    mode: "cors"
   };
+
+  const url = mi
+    ? `https://tenantapi.theartemis.ai/api/v1/email/getLinksById/${mi}`
+    : `https://tenantapi.theartemis.ai/api/v1/email/getAllLinks/${decryptedMail}`;
+
+  fetch(url, options)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then((responseData) => {
+      setRtrData(responseData[0] || responseData);
+      setCandidateData(responseData[0] || responseData);
+    })
+    .catch((error) => {
+      console.error("Fetch error:", error);
+      setRtrData("");
+    });
+};
   const handleCandidateChange = (e) => {
     const { id, value } = e.target;
     const fieldName = id.replace("rtr", "");
@@ -525,22 +525,22 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       );
 
       // First check if response is ok
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API Error Response:", errorText);
+      // if (!response.ok) {
+      //   const errorText = await response.text();
+      //   console.error("API Error Response:", errorText);
 
-        // Try to parse error message if it's JSON
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.message || errorMessage;
-        } catch (e) {
-          // If not JSON, use the text as is
-          errorMessage = errorText || errorMessage;
-        }
+      //   // Try to parse error message if it's JSON
+      //   let errorMessage = `HTTP error! status: ${response.status}`;
+      //   try {
+      //     const errorJson = JSON.parse(errorText);
+      //     errorMessage = errorJson.message || errorMessage;
+      //   } catch (e) {
+      //     // If not JSON, use the text as is
+      //     errorMessage = errorText || errorMessage;
+      //   }
 
-        throw new Error(errorMessage);
-      }
+      //   throw new Error(errorMessage);
+      // }
 
       // Then try to parse as JSON
       const result = await response.json();
@@ -548,7 +548,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
 
       swal({
         title: "Success!",
-        text: "Candidate created successfully.",
+        text: "Response submitted successfully.",
         icon: "success",
         timer: 2000,
         buttons: false
@@ -1344,11 +1344,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       url: `${host}list/submitCheckList2`,
       headers: {
         "Content-Type": "application/json",
-        "X-Tenant": tenant,
-      },
-      headers: {
-        "Content-Type": "application/json",
-        "X-Tenant": tenant,
+        "x-tenant": tenant,
       },
       data: {
         firstname: values.firstname,
@@ -1372,7 +1368,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     axios
       .request(options)
       .then(function (response) {
-        setLoading(true);
+        setLoading(false);
         if (response.data.baseResponse.status === 1) {
           swal({
             title: "Response received.",
@@ -1387,6 +1383,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
         }
       })
       .catch(function (error) {
+        setLoading(false);
         alert(error);
       });
   };
@@ -1481,54 +1478,34 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
   };
 
   const tableData = () => {
-    // const options = { method: "GET" };
-    // const options = {
-    //   method: "GET",
-    //   // hostname: "localhost",
-    //   // port: "9000",
-    //   // path: "/list/getCheckList/lpn?=&id=5434546543654654",
-    //   headers: {
-    //     // cookie: "JSESSIONID=6DCFF82A8DE56CF44793B1A3A5F0D827",
-    //     "User-Agent": "insomnia/8.6.1",
-    //     "content-type": "application/json",
-    //     "Content-Length": "0",
-    //   },
-    // };
-    // console.log("IIIID", id, `${host}list/getCheckList/${url}?id=${id}`);
-    let options = {
-      method: "GET",
-      headers: {
-        "User-Agent": "insomnia/8.6.1",
-        "X-Tenant": tenant,
-        "X-Tenant": tenant,
-      },
-    };
-
-    fetch(
-      `${host}list/getCheckList2/${url}?id=${id}&mail=${mail}&r=${r}`,
-      options
-    )
-      .then((res) => res.json())
-      // .then((json) => console.log(json))
-      .then((response) => {
-        if (response.baseResponse.status === 1) {
-          setData(response.response);
-          setSenderMail(response.recruiterMail);
-        } else {
-          router.push("/404");
-        }
-      })
-      .catch((err) => console.error("error:" + err));
-    // fetch(`${host}list/getCheckList/${url}?id=${id}`, options)
-    //   .then((response) => response.json())
-    //   .then((response) => {
-    //     if (response.baseResponse.status === 1) {
-    //       setData(response.response);
-    //     } else {
-    //       router.push("/404");
-    //     }
-    //   });
+  let options = {
+    method: "GET",
+    headers: {
+      "User-Agent": "insomnia/8.6.1",
+      "x-tenant": tenant,
+    },
   };
+
+  fetch(
+    `${host}list/getCheckList2/${url}?id=${id}&mail=${mail}&r=${r}`,
+    options
+  )
+    .then((res) => res.json())
+    .then((response) => {
+      if (response.baseResponse.status === 1) {
+        setData(response.response);
+        setSenderMail(response.recruiterMail);
+        setLoading(false); // ← ADD THIS LINE
+      } else {
+        setLoading(false); // ← ADD THIS LINE
+        router.push("/404");
+      }
+    })
+    .catch((err) => {
+      console.error("error:" + err);
+      setLoading(false); // ← ADD THIS LINE
+    });
+};
 
   useEffect(() => tableData(), []);
   useEffect(() => rtrDetails(), []);
@@ -1983,9 +1960,14 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                 </div>
               </div>
 
-              {data?.list === undefined || data?.list === null ? (
-                <>Wait</>
-              ) : (
+              {!data?.list ? (
+  <div className="container">
+    <div className="loading">Loading&#8230;</div>
+    <div className="content">
+      <h3>Please wait while we fetch your checklist!</h3>
+    </div>
+  </div>
+) : (
                 <div className="container">
                   <div className="row">
                     {data.list.map((list, index) => {
@@ -2485,9 +2467,14 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                 <div className="circle-box"></div>
               </div>
 
-              {data?.list === undefined || data?.list === null ? (
-                <>Wait</>
-              ) : (
+              {!data?.list ? (
+  <div className="container">
+    <div className="loading">Loading&#8230;</div>
+    <div className="content">
+      <h3>Please wait while we fetch your checklist!</h3>
+    </div>
+  </div>
+) : (
                 <div className="container">
                   <div>
                     <button
@@ -2745,18 +2732,92 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                         />
 
                         <InputField
-                          label={"Enter Phone number*"}
+                          label={"Phone number*"}
                           value={values.phoneno}
                           type={"tel"}
-                          // maxLength={10}
                           placeholder={"Enter Phone number"}
-                          onChange={handleChange}
+                          onChange={(e) => {
+                            const input = e.target.value;
+
+                            // 1. Remove all non-digit characters
+                            const digits = input.replace(/\D/g, "");
+
+                            // 2. Ensure starts with +1
+                            let formatted = "+1";
+                            if (digits.startsWith("1") && digits.length > 1) {
+                              formatted += digits.substring(1, 11); // Take next 10 digits
+                            } else if (!digits.startsWith("1")) {
+                              formatted += digits.substring(0, 10); // Take first 10 digits
+                            }
+
+                            // 3. Add formatting
+                            if (formatted.length > 2) {
+                              formatted = formatted.replace(
+                                /^(\+1)(\d{0,3})(\d{0,3})(\d{0,4})/,
+                                (_, p1, p2, p3, p4) =>
+                                  [
+                                    p1,
+                                    p2 && ` (${p2}`,
+                                    p3 && `) ${p3}`,
+                                    p4 && `-${p4}`,
+                                  ]
+                                    .filter(Boolean)
+                                    .join("")
+                              );
+                            }
+
+                            formik.setFieldValue("phoneno", formatted);
+                          }}
                           onBlur={handleBlur}
                           id={"validationCustom03"}
                           required={true}
                           name={"phoneno"}
                           errors={formik.errors.phoneno}
                           touched={formik.touched.phoneno}
+                        />
+                        <InputField
+                          label={"Alternate number"}
+                          value={values.otherphone}
+                          type={"tel"}
+                          placeholder={"Enter Phone number"}
+                          onChange={(e) => {
+                            const input = e.target.value;
+
+                            // 1. Remove all non-digit characters
+                            const digits = input.replace(/\D/g, "");
+
+                            // 2. Ensure starts with +1
+                            let formatted = "+1";
+                            if (digits.startsWith("1") && digits.length > 1) {
+                              formatted += digits.substring(1, 11); // Take next 10 digits
+                            } else if (!digits.startsWith("1")) {
+                              formatted += digits.substring(0, 10); // Take first 10 digits
+                            }
+
+                            // 3. Add formatting
+                            if (formatted.length > 2) {
+                              formatted = formatted.replace(
+                                /^(\+1)(\d{0,3})(\d{0,3})(\d{0,4})/,
+                                (_, p1, p2, p3, p4) =>
+                                  [
+                                    p1,
+                                    p2 && ` (${p2}`,
+                                    p3 && `) ${p3}`,
+                                    p4 && `-${p4}`,
+                                  ]
+                                    .filter(Boolean)
+                                    .join("")
+                              );
+                            }
+
+                            formik.setFieldValue("otherphone", formatted);
+                          }}
+                          onBlur={handleBlur}
+                          // id={"validationCustom03"}
+                          required={false}
+                          name={"otherphone"}
+                          errors={formik.errors.otherphone}
+                          touched={formik.touched.otherphone}
                         />
 
                         <InputField
@@ -2894,15 +2955,27 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                               required={false}
                             />
                             <NotRequiredInputField
-                              label={"Enter Referre's Phone"}
-                              value={item.phoneno}
+                              label={"Phone"}
+                              value={item.phoneno || "+1"}
                               type={"tel"}
-                              // maxLength={10}
-                              placeholder={"Enter Phone number"}
+                              placeholder={"Enter Phone Number"}
                               onChange={(e) => handleReferences(e, index)}
+                              onBlur={() => {
+                                // Validate on blur (optional)
+                                if (!/^\+1\d{10}$/.test(item._rawPhone || "")) {
+                                  alert("Phone number must be in the format +1 followed by 10 digits");
+                                }
+                              }}
                               id={"validationCustom03"}
                               name={"phoneno"}
                               required={false}
+                              // Add these if your NotRequiredInputField supports error display
+                              errors={
+                                item._rawPhone && !/^\+1\d{10}$/.test(item._rawPhone)
+                                  ? "Please enter a 10-digit phone number"
+                                  : undefined
+                              }
+                              touched={true}
                             />
                             <NotRequiredInputField
                               label={"Enter Referre's E-mail"}
@@ -2959,9 +3032,14 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                 </div>
               </div>
 
-              {data?.list === undefined || data?.list === null ? (
-                <>Wait</>
-              ) : (
+             {!data?.list ? (
+  <div className="container">
+    <div className="loading">Loading&#8230;</div>
+    <div className="content">
+      <h3>Please wait while we fetch your checklist!</h3>
+    </div>
+  </div>
+) : (
                 <div className="container">
                   <div className="row">
                     {data.list.map((list, index) => {
