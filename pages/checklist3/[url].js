@@ -1398,6 +1398,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
         cookie: "JSESSIONID=B666C8018B66CA7C561B76806A7C9778",
         "Content-Type": "application/json",
         "User-Agent": "insomnia/8.6.1",
+        "X-Tenant": tenant,
       },
       body: '{"email":"archit.mishra@midasconsulting.org","password":"MidasAdmin@3321"}',
     };
