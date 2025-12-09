@@ -174,9 +174,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     headers: {
       "accept": "*/*",
       "X-Tenant": tenant,
-      "Content-Type": "application/json"
     },
-    mode: "cors"
   };
 
   const url = mi
