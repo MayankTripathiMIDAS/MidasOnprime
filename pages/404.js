@@ -6,7 +6,7 @@ const index = () => {
     // Send the error info to the API route
     console.log("urlrlr", window.location.href);
 
-    fetch("http://34.230.215.187:9292/api/email/sendEmailChecklistLink", {
+    fetch("http://tenantapi.theartemis.ai/api/v1/email/sendEmailChecklistLink", {
       method: "POST",
       headers: {
         Accept: "*/*",
