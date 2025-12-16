@@ -12,7 +12,7 @@ import { Button, Modal } from "react-bootstrap";
 import axios from "axios";
 import swal from "sweetalert";
 import "react-datepicker/dist/react-datepicker.css";
-import ReactDatePicker from "react-datepicker";
+import DatePicker from "react-datepicker";
 import { host } from "../../static";
 import requestIp from "request-ip";
 import { NextApiRequest, NextApiResponse } from "next";
@@ -106,8 +106,23 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       address: "",
     },
     validationSchema: Yup.object({
-      firstname: Yup.string().required("Required"),
-      lastname: Yup.string().required("Required"),
+      firstname: Yup.string()
+        .required("First name is required")
+        .test('no-special-chars', 'Special characters and numbers are not allowed', value => {
+          return /^[a-zA-Z]+$/.test(value || '');
+        })
+        .test('no-leading-space', 'Cannot start with a space', value => {
+          return value ? !value.startsWith(' ') : true;
+        }),
+
+      lastname: Yup.string()
+        .required("Last name is required")
+        .test('no-special-chars', 'Special characters and numbers are not allowed', value => {
+          return /^[a-zA-Z]+$/.test(value || '');
+        })
+        .test('no-leading-space', 'Cannot start with a space', value => {
+          return value ? !value.startsWith(' ') : true;
+        }),
       phoneno: Yup.string()
         .required("Phone number is required")
         .matches(/^\+1\d{10}$/, "Please enter a 10-digit number)")
@@ -122,16 +137,37 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
         .required("SSN is required")
         .min(4, "Enter Last 4 Digits only")
         .max(4, "Enter Last 4 Digits only"),
-      email: Yup.string().email("Invalid email address").required("Required"),
+      email: Yup.string()
+        .required("Email is required*")
+        .matches(/^\S*$/, "Email cannot contain spaces")
+        .matches(
+          /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+          "Please enter a valid email address "
+        ),
+      address: Yup.string().required("Address is required"),
       dob: Yup.string()
         .required("Date of Birth is required")
         .test(
           "valid-format",
-          "Year must be exactly 4 digits (e.g., 1998)",
+          "Date must be in MM/DD/YYYY format",
           function (value) {
             if (!value) return false;
-            const yearPart = value.split("-")[0];
-            return /^\d{4}$/.test(yearPart);
+
+            // Try parsing as MM/DD/YYYY
+            const dateParts = value.split("/");
+            if (dateParts.length !== 3) return false;
+
+            const month = parseInt(dateParts[0], 10);
+            const day = parseInt(dateParts[1], 10);
+            const year = parseInt(dateParts[2], 10);
+
+            // Check if it's a valid date
+            const date = new Date(year, month - 1, day);
+            return (
+              date.getFullYear() === year &&
+              date.getMonth() === month - 1 &&
+              date.getDate() === day
+            );
           }
         )
         .test(
@@ -139,9 +175,15 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
           "Date of Birth cannot be a future date",
           function (value) {
             if (!value) return false;
-            const yearPart = value.split("-")[0];
-            if (!/^\d{4}$/.test(yearPart)) return false;
-            const selectedDate = new Date(value);
+
+            const dateParts = value.split("/");
+            if (dateParts.length !== 3) return false;
+
+            const month = parseInt(dateParts[0], 10);
+            const day = parseInt(dateParts[1], 10);
+            const year = parseInt(dateParts[2], 10);
+
+            const selectedDate = new Date(year, month - 1, day);
             const currentDate = new Date();
             return selectedDate <= currentDate;
           }
@@ -169,41 +211,56 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
   const decryptedMail = decryptURL(userEmail, secretKey);
 
   const rtrDetails = () => {
-  const options = {
-    method: "GET",
-    headers: {
-      "accept": "*/*",
-      "X-Tenant": tenant,
-    },
+    const options = {
+      method: "GET",
+      headers: {
+        "accept": "*/*",
+        "X-Tenant": tenant,
+      },
+    };
+
+    const url = mi
+      ? `https://tenantapi.theartemis.ai/api/v1/email/getLinksById/${mi}`
+      : `https://tenantapi.theartemis.ai/api/v1/email/getAllLinks/${decryptedMail}`;
+
+    fetch(url, options)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((responseData) => {
+        setRtrData(responseData[0] || responseData);
+        setCandidateData(responseData[0] || responseData);
+      })
+      .catch((error) => {
+        console.error("Fetch error:", error);
+        setRtrData("");
+      });
   };
-
-  const url = mi
-    ? `https://tenantapi.theartemis.ai/api/v1/email/getLinksById/${mi}`
-    : `https://tenantapi.theartemis.ai/api/v1/email/getAllLinks/${decryptedMail}`;
-
-  fetch(url, options)
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then((responseData) => {
-      setRtrData(responseData[0] || responseData);
-      setCandidateData(responseData[0] || responseData);
-    })
-    .catch((error) => {
-      console.error("Fetch error:", error);
-      setRtrData("");
-    });
-};
   const handleCandidateChange = (e) => {
     const { id, value } = e.target;
     const fieldName = id.replace("rtr", "");
-    setCandidateData((prevData) => ({
-      ...prevData,
-      [fieldName]: value,
-    }));
+
+    // Fields that should only accept letters
+    const nameFields = ['firstName', 'lastName'];
+
+    if (nameFields.includes(fieldName)) {
+      // Allow only letters (a-z, A-Z)
+      if (/^[a-zA-Z]*$/.test(value)) {
+        setCandidateData((prevData) => ({
+          ...prevData,
+          [fieldName]: value,
+        }));
+      }
+    } else {
+      // For other fields, update normally
+      setCandidateData((prevData) => ({
+        ...prevData,
+        [fieldName]: value,
+      }));
+    }
   };
 
   // const rtrDetails = () => {
@@ -310,7 +367,40 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     return tableHTML;
   }
 
-  const capitalized = url.charAt(0).toUpperCase() + url.slice(1);
+
+
+  const ABBREVIATIONS = new Set([
+    "rn", "lpn", "cna",
+    "icu", "nicu", "picu", "cvicu",
+    "cvor", "pacu", "er", "or",
+    "pct", "ltc", "ltac",
+    "pcu", "ekg", "eeg",
+    "ct", "mri", "gi",
+    "mds"
+  ]);
+
+  function formatChecklistTitle(value) {
+    return value
+      .replace(/[_]/g, "-")          // normalize underscores
+      .replace(/&/g, "and")          // replace &
+      .split("-")                    // split words
+      .map(word => {
+        if (!word) return "";
+
+        const lower = word.toLowerCase();
+
+        // Abbreviation → FULL CAPS
+        if (ABBREVIATIONS.has(lower)) {
+          return lower.toUpperCase();
+        }
+
+        // Normal word → Capitalized
+        return lower.charAt(0).toUpperCase() + lower.slice(1);
+      })
+      .join(" ");
+  }
+
+  const capitalized = formatChecklistTitle(url);
 
   const date = `${from}-${to}`;
 
@@ -1416,40 +1506,93 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
   //     formik.setFieldValue("phoneno",phoneus)
   //   },[phoneus])
 
+  // Updated handleReferences function with validation for name and email
+
+  // Helper function to parse date string in MM/DD/YYYY format
+const parseDateString = (dateString) => {
+  if (!dateString) return null;
+  
+  // If it's already in MM/DD/YYYY format
+  if (dateString.includes('/')) {
+    const [month, day, year] = dateString.split('/').map(Number);
+    if (month && day && year) {
+      return new Date(year, month - 1, day);
+    }
+  }
+  
+  // Try parsing as ISO format or other formats
+  const date = new Date(dateString);
+  return isNaN(date.getTime()) ? null : date;
+};
+
+  const handleNameInput = (e) => {
+    const value = e.target.value;
+    // Allow only letters and prevent starting with space
+    if (/^[a-zA-Z]*$/.test(value) || value === '') {
+      handleChange(e);
+    }
+  };
   const handleReferences = (e, index) => {
     const { name, value } = e.target;
     const updatedReferences = [...references];
 
     if (name === "phoneno") {
+      // Use the same formatting logic as in InputField
       const digits = value.replace(/\D/g, "");
-      const cleanedDigits = digits.startsWith("1") ? digits.slice(1, 11) : digits.slice(0, 10);
-      const rawPhone = `+1${cleanedDigits}`;
 
-      if (cleanedDigits.length < 10) {
-        updatedReferences[index][name] = value;
-        updatedReferences[index]._rawPhone = rawPhone;
-        setReferences(updatedReferences);
-        return;
+      // Ensure starts with +1
+      let formatted = "+1";
+      if (digits.startsWith("1") && digits.length > 1) {
+        formatted += digits.substring(1, 11); // Take next 10 digits
+      } else if (!digits.startsWith("1")) {
+        formatted += digits.substring(0, 10); // Take first 10 digits
       }
 
-      const formatted = rawPhone.replace(
-        /^\+1(\d{3})(\d{3})(\d{4})$/,
-        (_, p1, p2, p3) => `+1 (${p1}) ${p2}-${p3}`
-      );
+      // Add formatting
+      if (formatted.length > 2) {
+        formatted = formatted.replace(
+          /^(\+1)(\d{0,3})(\d{0,3})(\d{0,4})/,
+          (_, p1, p2, p3, p4) =>
+            [
+              p1,
+              p2 && ` (${p2}`,
+              p3 && `) ${p3}`,
+              p4 && `-${p4}`,
+            ]
+              .filter(Boolean)
+              .join("")
+        );
+      }
 
       updatedReferences[index][name] = formatted;
-      updatedReferences[index]._rawPhone = rawPhone;
-    }
+    } else if (name === "name") {
+      // Validate name: no leading spaces, only letters, spaces, hyphens, and apostrophes
+      const trimmedValue = value.trimStart();
 
-    // ✅ Always assign value for non-phone fields
-    if (name === "name" || name === "email") {
+      // Only allow letters, spaces, hyphens, and apostrophes
+      if (trimmedValue === "" || /^[A-Za-z\s'-]+$/.test(trimmedValue)) {
+        updatedReferences[index][name] = trimmedValue;
+      } else {
+        // Don't update if invalid characters
+        alert("Name can only contain letters, spaces, hyphens, and apostrophes");
+        return;
+      }
+    } else if (name === "email") {
+      // Validate email: no leading spaces, no spaces allowed
+      const trimmedValue = value.trimStart();
+
+      // Remove all spaces from email
+      const noSpacesValue = trimmedValue.replace(/\s/g, "");
+
+      updatedReferences[index][name] = noSpacesValue;
+    } else {
       updatedReferences[index][name] = value;
     }
 
     // Duplicate checking logic
     if (name === "name" && index !== 0) {
       const firstReferenceName = updatedReferences[0].name;
-      if (value === firstReferenceName) {
+      if (updatedReferences[index][name] === firstReferenceName) {
         alert("Reference name cannot be the same as the first reference's name");
         return;
       }
@@ -1466,7 +1609,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
 
     if (name === "email" && index !== 0) {
       const firstEmail = updatedReferences[0].email;
-      if (value === firstEmail) {
+      if (updatedReferences[index][name] === firstEmail) {
         alert("Email cannot be the same as the first reference");
         return;
       }
@@ -1476,34 +1619,34 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
   };
 
   const tableData = () => {
-  let options = {
-    method: "GET",
-    headers: {
-      "User-Agent": "insomnia/8.6.1",
-      "x-tenant": tenant,
-    },
-  };
+    let options = {
+      method: "GET",
+      headers: {
+        "User-Agent": "insomnia/8.6.1",
+        "x-tenant": tenant,
+      },
+    };
 
-  fetch(
-    `${host}list/getCheckList2/${url}?id=${id}&mail=${mail}&r=${r}`,
-    options
-  )
-    .then((res) => res.json())
-    .then((response) => {
-      if (response.baseResponse.status === 1) {
-        setData(response.response);
-        setSenderMail(response.recruiterMail);
+    fetch(
+      `${host}list/getCheckList2/${url}?id=${id}&mail=${mail}&r=${r}`,
+      options
+    )
+      .then((res) => res.json())
+      .then((response) => {
+        if (response.baseResponse.status === 1) {
+          setData(response.response);
+          setSenderMail(response.recruiterMail);
+          setLoading(false); // ← ADD THIS LINE
+        } else {
+          setLoading(false); // ← ADD THIS LINE
+          router.push("/404");
+        }
+      })
+      .catch((err) => {
+        console.error("error:" + err);
         setLoading(false); // ← ADD THIS LINE
-      } else {
-        setLoading(false); // ← ADD THIS LINE
-        router.push("/404");
-      }
-    })
-    .catch((err) => {
-      console.error("error:" + err);
-      setLoading(false); // ← ADD THIS LINE
-    });
-};
+      });
+  };
 
   useEffect(() => tableData(), []);
   useEffect(() => rtrDetails(), []);
@@ -1559,7 +1702,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                           value={values.firstname}
                           type={"text"}
                           placeholder={"Enter First Name"}
-                          onChange={handleChange}
+                          onChange={handleNameInput} // Use the filtered handler
                           onBlur={handleBlur}
                           id={"validationCustom03"}
                           required={true}
@@ -1575,7 +1718,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                           value={values.lastname}
                           type={"text"}
                           placeholder={"Enter Last Name"}
-                          onChange={handleChange}
+                          onChange={handleNameInput}
                           onBlur={handleBlur}
                           id={"validationCustom03"}
                           required={true}
@@ -1687,27 +1830,47 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                           touched={formik.touched.email}
                         />
 
-                        <InputField
-                          label="Date Of Birth*"
-                          value={values.dob}
-                          type="date"
-                          id="dob"
-                          required
-                          name="dob"
-                          onChange={(e) => {
-                            let val = e.target.value;
-                            const parts = val.split("-");
-                            if (parts[0]?.length > 4) {
-                              parts[0] = parts[0].slice(0, 4);
-                              val = parts.join("-");
-                              e.target.value = val;
-                            }
-                            formik.setFieldValue("dob", val);
-                          }}
-                          onBlur={handleBlur}
-                          errors={formik.errors.dob}
-                          touched={formik.touched.dob}
-                        />
+                        <div className="form-group col-md-2">
+                          <label className="m-2 text-dark">Date Of Birth*</label>
+                          <DatePicker
+                            selected={values.dob ? parseDateString(values.dob) : null}
+                            showMonthDropdown
+                            dropdownMode="select"
+                            popperPlacement="top"
+                            onChange={(date) => {
+                              if (date) {
+                                // Format the date as MM/DD/YYYY
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const year = date.getFullYear();
+                                formik.setFieldValue("dob", `${month}/${day}/${year}`);
+                              } else {
+                                formik.setFieldValue("dob", "");
+                              }
+                            }}
+                            onBlur={() => formik.setFieldTouched("dob", true)}
+                            onChangeRaw={(e) => {
+                              // Allow manual input in MM/DD/YYYY format
+                              const rawValue = e.target.value;
+                              // Basic format validation for manual entry
+                              if (/^\d{0,2}\/?\d{0,2}\/?\d{0,4}$/.test(rawValue)) {
+                                // You can add auto-formatting here if needed
+                              }
+                            }}
+                            dateFormat="MM/dd/yyyy"
+                            placeholderText="MM/DD/YYYY"
+                            className="form-control"
+                            showYearDropdown
+                            scrollableYearDropdown
+                            yearDropdownItemNumber={50}
+                            maxDate={new Date()}
+                            required
+                            showMonthYearPicker={false}
+                          />
+                          {formik.touched.dob && formik.errors.dob && (
+                            <div className="text-danger small">{formik.errors.dob}</div>
+                          )}
+                        </div>
 
                         <InputField
                           label={"Last four SSN digit"}
@@ -1724,7 +1887,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                         />
 
                         <InputField
-                          label={"Address"}
+                          label={"Address*"}
                           value={values.address}
                           placeholder={"Enter Your Address"}
                           onChange={handleChange}
@@ -1824,21 +1987,9 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                               type={"tel"}
                               placeholder={"Enter Phone Number"}
                               onChange={(e) => handleReferences(e, index)}
-                              onBlur={() => {
-                                // Validate on blur (optional)
-                                if (!/^\+1\d{10}$/.test(item._rawPhone || "")) {
-                                  alert("Phone number must be in the format +1 followed by 10 digits");
-                                }
-                              }}
                               id={"validationCustom03"}
                               name={"phoneno"}
                               required={false}
-                              // Add these if your NotRequiredInputField supports error display
-                              errors={
-                                item._rawPhone && !/^\+1\d{10}$/.test(item._rawPhone)
-                                  ? "Please enter a 10-digit phone number"
-                                  : undefined
-                              }
                               touched={true}
                             />
                             <NotRequiredInputField
@@ -1959,13 +2110,13 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
               </div>
 
               {!data?.list ? (
-  <div className="container">
-    <div className="loading">Loading&#8230;</div>
-    <div className="content">
-      <h3>Please wait while we fetch your checklist!</h3>
-    </div>
-  </div>
-) : (
+                <div className="container">
+                  <div className="loading">Loading&#8230;</div>
+                  <div className="content">
+                    <h3>Please wait while we fetch your checklist!</h3>
+                  </div>
+                </div>
+              ) : (
                 <div className="container">
                   <div className="row">
                     {data.list.map((list, index) => {
@@ -2466,13 +2617,13 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
               </div>
 
               {!data?.list ? (
-  <div className="container">
-    <div className="loading">Loading&#8230;</div>
-    <div className="content">
-      <h3>Please wait while we fetch your checklist!</h3>
-    </div>
-  </div>
-) : (
+                <div className="container">
+                  <div className="loading">Loading&#8230;</div>
+                  <div className="content">
+                    <h3>Please wait while we fetch your checklist!</h3>
+                  </div>
+                </div>
+              ) : (
                 <div className="container">
                   <div>
                     <button
@@ -2704,7 +2855,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                           value={values.firstname}
                           type={"text"}
                           placeholder={"First Name"}
-                          onChange={handleChange}
+                          onChange={handleNameInput}
                           onBlur={handleBlur}
                           id={"validationCustom03"}
                           required={true}
@@ -2720,7 +2871,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                           value={values.lastname}
                           type={"text"}
                           placeholder={"Last Name"}
-                          onChange={handleChange}
+                          onChange={handleNameInput}
                           onBlur={handleBlur}
                           id={"validationCustom03"}
                           required={true}
@@ -2832,21 +2983,50 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                           touched={formik.touched.email}
                         />
 
-                        <InputField
-                          label={"Date Of Birth*"}
-                          value={values.dob}
-                          type={"date"}
-                          id={"dob"}
-                          required={true}
-                          name={"dob"}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
-                          errors={formik.errors.dob}
-                          touched={formik.touched.dob}
-                        />
+                        <div className="form-group col-md-2">
+                          <label className="m-2 text-dark">Date Of Birth*</label>
+                          <DatePicker
+                            selected={values.dob ? parseDateString(values.dob) : null}
+                            showMonthDropdown
+                            dropdownMode="select"
+                            popperPlacement="top"
+                            onChange={(date) => {
+                              if (date) {
+                                // Format the date as MM/DD/YYYY
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const year = date.getFullYear();
+                                formik.setFieldValue("dob", `${month}/${day}/${year}`);
+                              } else {
+                                formik.setFieldValue("dob", "");
+                              }
+                            }}
+                            onBlur={() => formik.setFieldTouched("dob", true)}
+                            onChangeRaw={(e) => {
+                              // Allow manual input in MM/DD/YYYY format
+                              const rawValue = e.target.value;
+                              // Basic format validation for manual entry
+                              if (/^\d{0,2}\/?\d{0,2}\/?\d{0,4}$/.test(rawValue)) {
+                                // You can add auto-formatting here if needed
+                              }
+                            }}
+                            dateFormat="MM/dd/yyyy"
+                            placeholderText="MM/DD/YYYY"
+                            className="form-control"
+                            showYearDropdown
+                            scrollableYearDropdown
+                            yearDropdownItemNumber={50}
+                            maxDate={new Date()}
+                            required
+                            showMonthYearPicker={false}
+                          />
+                          {formik.touched.dob && formik.errors.dob && (
+                            <div className="text-danger small">{formik.errors.dob}</div>
+                          )}
+                        </div>
 
                         <InputField
-                          label={"Last four SSN digit"}
+                          label={"Last four SSN digit*"}
                           value={values.ssn}
                           type={"text"}
                           placeholder={"Last four SSN digit"}
@@ -2860,7 +3040,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                         />
 
                         <InputField
-                          label={"Enter Your Address"}
+                          label={"Address*"}
                           value={values.address}
                           placeholder={"Enter Your Address"}
                           onChange={handleChange}
@@ -2868,6 +3048,8 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                           id={"validationCustom03"}
                           required={true}
                           name={"address"}
+                          errors={formik.errors.address}
+                          touched={formik.touched.address}
                         />
 
                         {from && to == "Invalid date" ? (
@@ -2943,10 +3125,10 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                         {references.map((item, index) => (
                           <div className="form-group row mb-3 d-flex align-items-center">
                             <NotRequiredInputField
-                              label={"Enter Referre's Name"}
+                              label={"Enter Name"}
                               value={item.name}
                               type={"text"}
-                              placeholder={"Full Name"}
+                              placeholder={"Enter Full Name"}
                               onChange={(e) => handleReferences(e, index)}
                               id={"validationCustom03"}
                               name={"name"}
@@ -2958,28 +3140,16 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                               type={"tel"}
                               placeholder={"Enter Phone Number"}
                               onChange={(e) => handleReferences(e, index)}
-                              onBlur={() => {
-                                // Validate on blur (optional)
-                                if (!/^\+1\d{10}$/.test(item._rawPhone || "")) {
-                                  alert("Phone number must be in the format +1 followed by 10 digits");
-                                }
-                              }}
                               id={"validationCustom03"}
                               name={"phoneno"}
                               required={false}
-                              // Add these if your NotRequiredInputField supports error display
-                              errors={
-                                item._rawPhone && !/^\+1\d{10}$/.test(item._rawPhone)
-                                  ? "Please enter a 10-digit phone number"
-                                  : undefined
-                              }
                               touched={true}
                             />
                             <NotRequiredInputField
-                              label={"Enter Referre's E-mail"}
+                              label={"Enter E-mail"}
                               value={item.email}
                               type={"email"}
-                              placeholder={"Enter Referre's E-mail"}
+                              placeholder={"Enter E-mail"}
                               onChange={(e) => handleReferences(e, index)}
                               id={"validationCustom03"}
                               name={"email"}
@@ -3030,14 +3200,14 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                 </div>
               </div>
 
-             {!data?.list ? (
-  <div className="container">
-    <div className="loading">Loading&#8230;</div>
-    <div className="content">
-      <h3>Please wait while we fetch your checklist!</h3>
-    </div>
-  </div>
-) : (
+              {!data?.list ? (
+                <div className="container">
+                  <div className="loading">Loading&#8230;</div>
+                  <div className="content">
+                    <h3>Please wait while we fetch your checklist!</h3>
+                  </div>
+                </div>
+              ) : (
                 <div className="container">
                   <div className="row">
                     {data.list.map((list, index) => {
