@@ -1479,7 +1479,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
         list: data.list,
         htmlData: Html,
         htmlData1: RtrTemp,
-        listName: rtrData.jobTitle || data.Listname,
+        listName: data.Listname,
         address: values.address || "",
         requestTimeOffDate: { startDate: from, endDate: to },
         categoryname: url,
