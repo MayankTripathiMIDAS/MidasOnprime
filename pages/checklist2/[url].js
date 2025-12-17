@@ -1085,6 +1085,34 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     // createCandidate(values, token);
     e.preventDefault();
     setFormValues(values);
+    console.log("========== SUBMIT DATA DEBUG ==========");
+    console.log("r flag:", r);
+    console.log("candidateData:", candidateData);
+    console.log("values:", values);
+    console.log("rtrData:", rtrData);
+    console.log("=======================================");
+
+    const useCandidateData = r === "ortr" || r === "wrtr";
+
+    // Use candidateData for RTR forms, values for regular checklist forms
+    // Add safety checks to prevent undefined errors
+    const firstname = useCandidateData && candidateData?.firstName
+      ? candidateData.firstName
+      : values.firstname || "";
+
+    const lastname = useCandidateData && candidateData?.lastName
+      ? candidateData.lastName
+      : values.lastname || "";
+
+    const email = useCandidateData && candidateData?.email
+      ? candidateData.email
+      : values.email || "";
+
+    const phoneno = useCandidateData && candidateData?.phone
+      ? candidateData.phone
+      : values.phoneno || "";
+
+    console.log("Using names:", { firstname, lastname, email, phoneno });
 
     console.log("Submitting data:", values, candidateData);
     console.log("values", values, candidateData);
@@ -1427,6 +1455,12 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
 
     const formatDob = moment(formValues.dob).format("MM/DD/YYYY");
 
+    // ✅ Determine listName based on form type
+    const finalListName = (useCandidateData && rtrData?.jobTitle)
+      ? rtrData.jobTitle
+      : data?.Listname || listName || url;
+    console.log("Final listName being sent:", finalListName);
+
     const options = {
       method: "POST",
       url: `${host}list/submitCheckList2`,
@@ -1435,23 +1469,24 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
         "x-tenant": tenant,
       },
       data: {
-        firstname: values.firstname,
-        lastname: values.lastname,
-        phoneno: values.phoneno,
-        email: values.email,
+        firstname: firstname,
+        lastname: lastname,
+        phoneno: phoneno,
+        email: email,
         dob: formatDob,
         ssn: values.ssn,
         references: references,
         list: data.list,
         htmlData: Html,
         htmlData1: RtrTemp,
-        listName: data.Listname,
-        address: values.address,
+        listName: rtrData.jobTitle || data.Listname,
+        address: values.address || "",
         requestTimeOffDate: { startDate: from, endDate: to },
         categoryname: url,
         senderMail: senderMail,
       },
     };
+    console.log("Submitting payload:", options.data);
     setLoading(true);
     axios
       .request(options)
@@ -1509,21 +1544,21 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
   // Updated handleReferences function with validation for name and email
 
   // Helper function to parse date string in MM/DD/YYYY format
-const parseDateString = (dateString) => {
-  if (!dateString) return null;
-  
-  // If it's already in MM/DD/YYYY format
-  if (dateString.includes('/')) {
-    const [month, day, year] = dateString.split('/').map(Number);
-    if (month && day && year) {
-      return new Date(year, month - 1, day);
+  const parseDateString = (dateString) => {
+    if (!dateString) return null;
+
+    // If it's already in MM/DD/YYYY format
+    if (dateString.includes('/')) {
+      const [month, day, year] = dateString.split('/').map(Number);
+      if (month && day && year) {
+        return new Date(year, month - 1, day);
+      }
     }
-  }
-  
-  // Try parsing as ISO format or other formats
-  const date = new Date(dateString);
-  return isNaN(date.getTime()) ? null : date;
-};
+
+    // Try parsing as ISO format or other formats
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
+  };
 
   const handleNameInput = (e) => {
     const value = e.target.value;
@@ -2415,7 +2450,22 @@ const parseDateString = (dateString) => {
               )}
             </form>
           ) : r === "ortr" ? (
-            <form onSubmit={(e) => submitData(e, values)}>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+
+              // ✅ For RTR forms, create a combined object
+              const combinedValues = {
+                firstname: candidateData.firstName,
+                lastname: candidateData.lastName,
+                email: candidateData.email,
+                phoneno: candidateData.phone,
+                dob: "",
+                ssn: "",
+                address: "",
+              };
+
+              submitData(e, combinedValues);
+            }}>
               <div className="container checklist-head">
                 <div className="midas-logo">
                   <img src="/images/logo.webp" />
