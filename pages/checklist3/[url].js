@@ -1456,10 +1456,10 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     const formatDob = moment(formValues.dob).format("MM/DD/YYYY");
 
     // ✅ Determine listName based on form type
-    const finalListName = (useCandidateData && rtrData?.jobTitle)
-      ? rtrData.jobTitle
-      : data?.Listname || listName || url;
-    console.log("Final listName being sent:", finalListName);
+    // const finalListName = (useCandidateData && rtrData?.jobTitle)
+    //   ? rtrData.jobTitle
+    //   : data?.Listname || listName || url;
+    // console.log("Final listName being sent:", finalListName);
 
     const options = {
       method: "POST",
