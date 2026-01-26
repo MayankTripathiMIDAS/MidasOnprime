@@ -217,8 +217,8 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     console.log("rrr", decryptedURL);
     return decryptedURL;
   }
-  // const decryptedMail = decryptURL(userEmail, secretKey);
-  // console.log("decryptedMail", decryptedMail);
+  const decryptedMail = decryptURL(userEmail, secretKey);
+  console.log("decryptedMail", decryptedMail);
   
 
   const rtrDetails = () => {
