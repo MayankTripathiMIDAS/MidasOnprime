@@ -3,9 +3,17 @@ const nextConfig = {
   reactStrictMode: true,
   optimizeFonts: false,
   swcMinify: false,
+
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "http://157.20.214.84:9292/api/:path*",
+      },
+    ];
+  },
+
   eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
 };

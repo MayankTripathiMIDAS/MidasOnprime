@@ -2097,7 +2097,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     const options = {
       method: "POST",
       // url: `${host}list/submitCheckList2`,
-      url: `${host}api/v1/checklists/submit`,
+      url: `/api/v1/checklists/submit`,
       headers: {
         "Content-Type": "application/json",
         "X-Tenant": tenant,
@@ -2327,7 +2327,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       },
     };
 
-    fetch(`${host}api/v1/checklists/templates/${url}`, options)
+    fetch(`/api/v1/checklists/templates/${url}`, options)
       .then((res) => res.json())
       .then((response) => {
         console.log("Table Data Response:", response);
