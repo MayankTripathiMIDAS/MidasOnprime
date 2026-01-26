@@ -13,7 +13,7 @@ import axios from "axios";
 import swal from "sweetalert";
 import "react-datepicker/dist/react-datepicker.css";
 import DatePicker from "react-datepicker";
-import { host } from "../../static";
+import { host, host1 } from "../../static";
 import requestIp from "request-ip";
 import { NextApiRequest, NextApiResponse } from "next";
 import { id } from "date-fns/locale";
@@ -1463,7 +1463,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
 
     const options = {
       method: "POST",
-      url: `${host}list/submitCheckList2`,
+      url: `${host1}list/submitCheckList2`,
       headers: {
         "Content-Type": "application/json",
         "x-tenant": tenant,
@@ -1663,7 +1663,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     };
 
     fetch(
-      `${host}list/getCheckList2/${url}?id=${id}&mail=${mail}&r=${r}`,
+      `${host1}list/getCheckList2/${url}?id=${id}&mail=${mail}&r=${r}`,
       options
     )
       .then((res) => res.json())
