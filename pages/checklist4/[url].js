@@ -232,8 +232,8 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     };
 
     const url = mi
-      ? `https://tenantapi.theartemis.ai/api/v1/email/getLinksById/${mi}`
-      : `https://tenantapi.theartemis.ai/api/v1/email/getAllLinks/${decryptedMail}`;
+      ? `/api/v1/email/getLinksById/${mi}`
+      : `/api/v1/email/getAllLinks/${decryptedMail}`;
 
     fetch(url, options)
       .then((response) => {
