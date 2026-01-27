@@ -24,6 +24,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
   const router = useRouter();
   const [active, setActive] = useState(false);
   // console.log("here", active);
+  console.log("tenant id ", tenant);
   const [speciality, setSpeciality] = useState("");
   const [totalExperience, setTotalExperience] = useState("");
   const [token, setToken] = useState("");
