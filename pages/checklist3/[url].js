@@ -2141,7 +2141,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
             icon: "success",
             showConfirmButton: true, // Ensures a confirm button is displayed
           });
-          // window.location.reload();
+          window.location.reload();
         }
       })
       .catch(function (error) {
