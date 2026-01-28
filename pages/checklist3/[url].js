@@ -2588,7 +2588,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                         </div>
 
                         <InputField
-                          label={"Last four SSN digit"}
+                          label={"Last four SSN digit*"}
                           value={values.ssn}
                           type={"text"}
                           placeholder={"Enter Last four SSN digit"}
@@ -3052,7 +3052,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                                                         ? "checked"
                                                         : null;
                                                   }}
-                                                  name={item.name}
+                                                  name={`${list.title}-${item.name}`}
                                                   required
                                                 />
                                               </td>
@@ -4296,7 +4296,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                                                     ? (item.value1 = "")
                                                     : null;
                                                 }}
-                                                name={item.name}
+                                                name={`${list.title}-${item.name}`}
                                                 required
                                               />
                                             </td>
@@ -4317,7 +4317,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                                                     ? (item.value2 = "")
                                                     : null;
                                                 }}
-                                                name={item.name}
+                                                name={`${list.title}-${item.name}`}
                                                 required
                                               />
                                             </td>
@@ -4337,7 +4337,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                                                     ? (item.value3 = "")
                                                     : null;
                                                 }}
-                                                name={item.name}
+                                                name={`${list.title}-${item.name}`}
                                                 required
                                               />
                                             </td>
@@ -4357,7 +4357,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
                                                     ? (item.value4 = "")
                                                     : null;
                                                 }}
-                                                name={item.name}
+                                                name={`${list.title}-${item.name}`}
                                                 required
                                               />
                                             </td>
