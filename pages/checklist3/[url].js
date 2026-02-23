@@ -2098,7 +2098,7 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     const options = {
       method: "POST",
       // url: `${host}list/submitCheckList2`,
-      url: `/api/v1/checklists/submit`,
+      url: `${host}api/v1/checklists/submit`,
       headers: {
         "Content-Type": "application/json",
         "X-Tenant": tenant,
