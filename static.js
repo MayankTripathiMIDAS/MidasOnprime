@@ -2,4 +2,4 @@
 
 // export const host = "http://localhost:9000/";
 // export const host = "http://157.20.214.84:9292/"
-export const host = "http://tenantapi.theartemis.ai/"
+export const host = "https://tenantapi.theartemis.ai/"
