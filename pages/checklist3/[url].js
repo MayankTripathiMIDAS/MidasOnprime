@@ -232,8 +232,8 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
     };
 
     const url = mi
-      ? `/api/v1/email/getLinksById/${mi}`
-      : `/api/v1/email/getAllLinks/${decryptedMail}`;
+      ? `https://tenantapi.theartemis.ai/api/v1/email/getLinksById/${mi}`
+      : `https://tenantapi.theartemis.ai/api/v1/email/getAllLinks/${decryptedMail}`;
 
     fetch(url, options)
       .then((response) => {
@@ -2324,11 +2324,11 @@ const Url = ({ url, id, mail, r, mi, tenant }) => {
       method: "GET",
       headers: {
         "User-Agent": "insomnia/8.6.1",
-        "x-tenant": tenant,
+        "X-Tenant": "68cc764fbfc57730593b4a32",
       },
     };
 
-    fetch(`/api/v1/checklists/templates/${url}`, options)
+    fetch(`https://tenantapi.theartemis.ai/api/v1/checklists/templates/${url}`, options)
       .then((res) => res.json())
       .then((response) => {
         console.log("Table Data Response:", response);
